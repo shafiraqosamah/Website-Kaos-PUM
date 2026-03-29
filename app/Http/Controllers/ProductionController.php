@@ -13,19 +13,34 @@ class ProductionController extends Controller
 {
     public function index(): View
     {
-        $orders = Order::with(['user', 'workOrder', 'productionSteps'])
+        $activeOrders = Order::with(['user', 'workOrder', 'productionSteps'])
             ->whereIn('order_status', ['verified_payment', 'in_production', 'finishing_waiting_settlement'])
             ->latest()
             ->get();
 
-        return view('production.index', compact('orders'));
+        $completedOrders = Order::with(['user', 'workOrder', 'productionSteps'])
+            ->where('order_status', 'completed')
+            ->latest('updated_at')
+            ->take(100)
+            ->get();
+
+        return view('production.index', compact('activeOrders', 'completedOrders'));
     }
 
     public function show(Order $order): View
     {
-        $order->load(['user', 'workOrder', 'productionSteps']);
+        $order->load(['user', 'workOrder', 'productionSteps', 'sizes']);
 
         return view('production.show', compact('order'));
+    }
+
+    public function spk(Order $order): View
+    {
+        $order->load(['user', 'workOrder.issuer', 'sizes']);
+
+        abort_unless((bool) $order->workOrder, 404);
+
+        return view('production.spk', compact('order'));
     }
 
     public function updateStep(Request $request, Order $order, ProductionStep $step): RedirectResponse

@@ -21,22 +21,34 @@
         }
         .top {
             display: flex;
-            justify-content: space-between;
-            gap: 16px;
-            align-items: flex-start;
+            gap: 14px;
+            align-items: center;
             border-bottom: 4px solid #111;
             padding-bottom: 12px;
         }
+        .brand-logo {
+            width: 76px;
+            height: 76px;
+            object-fit: contain;
+            display: block;
+        }
+        .brand {
+            min-width: 0;
+            flex: 1;
+        }
         .brand-title {
-            font-size: 30px;
+            font-size: 48px;
             font-weight: 800;
             color: #d60f0f;
-            line-height: 1.05;
+            line-height: 1;
+            letter-spacing: 0.01em;
             margin-bottom: 4px;
+            text-transform: uppercase;
         }
-        .brand-sub {
-            font-size: 14px;
-            letter-spacing: 3px;
+        .brand-contact {
+            font-size: 22px;
+            letter-spacing: 0.16em;
+            color: #111;
         }
         .section-title {
             text-align: center;
@@ -106,6 +118,18 @@
             .sheet { box-shadow: none; width: 100%; }
             .actions { display: none; }
         }
+        @media (max-width: 900px) {
+            .top {
+                align-items: flex-start;
+            }
+            .brand-title {
+                font-size: 36px;
+            }
+            .brand-contact {
+                font-size: 15px;
+                letter-spacing: 0.1em;
+            }
+        }
     </style>
 </head>
 <body>
@@ -114,13 +138,10 @@
 </div>
 <div class="sheet">
     <div class="top">
-        <div>
-            <div class="brand-title">PT Panji Usaha Mulia</div>
-            <div class="brand-sub">KONVEKSI DAN PEMESANAN KAOS CUSTOM</div>
-        </div>
-        <div style="text-align:right; font-size:14px; line-height:1.7;">
-            <div>Bandung</div>
-            <div>Kontak Keuangan PT Panji Usaha Mulia</div>
+        <img class="brand-logo" src="{{ asset('images/logo.png') }}" alt="Logo PT Panji Usaha Mulia">
+        <div class="brand">
+            <div class="brand-title">PT PANJI USAHA MULIA</div>
+            <div class="brand-contact">Jl. Jendral A. Yani 909 Bandung | 022 721 5924</div>
         </div>
     </div>
 

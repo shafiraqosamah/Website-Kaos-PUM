@@ -15,12 +15,17 @@ class Payment extends Model
         ],
         'bni' => [
             'label' => 'BNI',
-            'account_number' => '-',
+            'account_number' => '123-456-7892',
+            'account_name' => 'Keuangan',
+        ],
+        'bri' => [
+            'label' => 'BRI',
+            'account_number' => '123-456-7892',
             'account_name' => 'Keuangan',
         ],
         'mandiri' => [
             'label' => 'Mandiri',
-            'account_number' => '-',
+            'account_number' => '123-456-7893',
             'account_name' => 'Keuangan',
         ],
     ];
