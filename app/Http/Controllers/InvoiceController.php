@@ -32,6 +32,8 @@ class InvoiceController extends Controller
         $payment->loadMissing(['order.user', 'verifiedBy']);
         $order = $payment->order;
 
+        [$payViaLabel, $payViaDetail] = $this->resolvePayVia($payment);
+
         return view('invoices.show', [
             'payment' => $payment,
             'order' => $order,
@@ -42,6 +44,61 @@ class InvoiceController extends Controller
                 'settlement' => 'PELUNASAN',
                 default => strtoupper($payment->method),
             },
+            'payViaLabel' => $payViaLabel,
+            'payViaDetail' => $payViaDetail,
         ]);
+    }
+
+    private function resolvePayVia(Payment $payment): array
+    {
+        $type = (string) ($payment->midtrans_payment_type ?? '');
+        $response = is_array($payment->midtrans_response) ? $payment->midtrans_response : [];
+
+        if ($type === '') {
+            return ['Manual Transfer', null];
+        }
+
+        if ($type === 'bank_transfer') {
+            $vaNumbers = $response['va_numbers'] ?? [];
+            if (is_array($vaNumbers) && isset($vaNumbers[0]['bank'], $vaNumbers[0]['va_number'])) {
+                $bank = strtoupper((string) $vaNumbers[0]['bank']);
+                $va = (string) $vaNumbers[0]['va_number'];
+
+                return ['VA ' . $bank, 'VA: ' . $va];
+            }
+
+            if (! empty($response['permata_va_number'])) {
+                return ['VA Permata', 'VA: ' . (string) $response['permata_va_number']];
+            }
+
+            return ['Virtual Account', null];
+        }
+
+        if ($type === 'echannel') {
+            $billKey = (string) ($response['bill_key'] ?? '');
+            $billerCode = (string) ($response['biller_code'] ?? '');
+
+            return ['Mandiri Bill Payment', trim('Bill Key: ' . $billKey . ($billerCode !== '' ? ' | Biller: ' . $billerCode : ''))];
+        }
+
+        if ($type === 'qris') {
+            return ['QRIS', null];
+        }
+
+        if ($type === 'gopay') {
+            return ['GoPay', null];
+        }
+
+        if ($type === 'shopeepay') {
+            return ['ShopeePay', null];
+        }
+
+        if ($type === 'credit_card') {
+            $issuer = (string) ($response['bank'] ?? 'Kartu');
+
+            return ['Kartu Kredit/Debit', $issuer !== '' ? 'Issuer: ' . strtoupper($issuer) : null];
+        }
+
+        return [ucwords(str_replace('_', ' ', $type)), null];
     }
 }

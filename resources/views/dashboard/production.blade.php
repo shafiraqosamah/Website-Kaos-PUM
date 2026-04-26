@@ -3,66 +3,203 @@
 @section('content')
 @php
     $settlementRisk = $waitingSettlement > 0;
+
+    $timelineStepName = static function (string $name): ?string {
+        $normalized = strtolower(trim($name));
+
+        if (str_contains($normalized, 'cutting')) {
+            return 'Cutting';
+        }
+
+        if (str_contains($normalized, 'persiapan bahan')) {
+            return null;
+        }
+
+        if (str_contains($normalized, 'jahit') || str_contains($normalized, 'obras')) {
+            return 'Jahit / Obras';
+        }
+
+        if (str_contains($normalized, 'sablon') || str_contains($normalized, 'bordir') || str_contains($normalized, 'printing')) {
+            return 'Sablon / Bordir / Printing';
+        }
+
+        if (str_contains($normalized, 'steam')) {
+            return 'Steam & Pressing';
+        }
+
+        if (str_contains($normalized, 'finishing') || str_contains($normalized, 'packing')) {
+            return 'Finishing';
+        }
+
+        return $name;
+    };
+
+    $isProductionCompleted = static function ($order) use ($timelineStepName): bool {
+        $displaySteps = collect();
+
+        foreach ($order->productionSteps->sortBy('step_order')->values() as $step) {
+            $displayName = $timelineStepName((string) $step->step_name);
+
+            if ($displayName === null) {
+                continue;
+            }
+
+            $displaySteps->push($step);
+        }
+
+        return $displaySteps->isNotEmpty() && $displaySteps->every(static fn ($step) => $step->status === 'done');
+    };
+
+    $completedProductionCount = $activeOrdersWithSteps->filter(static fn ($order) => $isProductionCompleted($order))->count();
+    $processingCount = max($activeOrdersWithSteps->count() - $completedProductionCount, 0);
 @endphp
 
 <style>
+    .production-page {
+        background: #ffffff;
+        border: 1px solid #d9e2ea;
+        border-radius: 14px;
+        padding: 1.5rem 2rem 1.5rem;
+    }
+
     .production-header {
-        background: linear-gradient(135deg, #0d2749 0%, #102945 50%, #1a3d5c 100%);
-        border-radius: 16px;
-        padding: clamp(1.5rem, 3vw, 2.2rem);
-        margin-bottom: 2rem;
-        border: 1px solid rgba(198, 166, 71, 0.2);
-        position: relative;
-        overflow: hidden;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1.5rem;
-        flex-wrap: wrap;
-    }
-
-    .production-header::before {
-        content: "";
-        position: absolute;
-        top: -50%;
-        right: -8%;
-        width: 400px;
-        height: 400px;
-        border-radius: 999px;
-        background: radial-gradient(circle, rgba(198, 166, 71, 0.12) 0%, transparent 70%);
-        pointer-events: none;
-    }
-
-    .production-header-content {
-        position: relative;
-        z-index: 1;
-        flex: 1;
-        min-width: 300px;
+        margin-bottom: 1.2rem;
     }
 
     .production-header h1 {
+        margin: 0 0 0.35rem;
+        font-size: clamp(1.18rem, 1.8vw, 1.4rem);
+        line-height: 1.08;
+        color: #0d2749;
         font-family: 'Playfair Display', serif;
-        font-size: clamp(1.34rem, 2.1vw, 1.76rem);
-        color: #ffffff;
-        margin: 0 0 0.5rem;
         font-weight: 700;
     }
 
     .production-header p {
-        color: #c8d6e8;
         margin: 0;
+        color: #8ca0b7;
         font-size: 0.82rem;
+        font-weight: 600;
+    }
+
+    .kpi-grid-modern {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .kpi-card-modern {
+        background: #ffffff;
+        border: 1px solid #d9e2ec;
+        border-radius: 12px;
+        padding: 1rem 1.05rem;
+        border-top: 4px solid #c6d3df;
+        box-shadow: 0 1px 3px rgba(15, 43, 61, 0.03);
+        transition: all 0.2s;
+    }
+
+    .kpi-card-modern:hover {
+        border-color: #c8d6e8;
+        box-shadow: 0 3px 8px rgba(15, 43, 61, 0.06);
+    }
+
+    .kpi-card-modern.active {
+        border-top-color: #0c7fb6;
+    }
+
+    .kpi-card-modern.completed {
+        border-top-color: #0f8f60;
+    }
+
+    .kpi-card-modern.blocked {
+        border-top-color: #d95f18;
+    }
+
+    .kpi-title {
+        margin: 0 0 0.5rem;
+        color: #8da1b7;
+        font-size: 0.74rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.01em;
+    }
+
+    .kpi-value {
+        font-family: 'Playfair Display', serif;
+        font-size: clamp(1.15rem, 1.55vw, 1.38rem);
+        line-height: 1;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: #0d2749;
+    }
+
+    .kpi-note {
+        font-size: 0.75rem;
+        line-height: 1.4;
+        color: #8da1b7;
+    }
+
+    .finishing-alert {
+        background: linear-gradient(135deg, #fff5f1 0%, #fff0e8 100%);
+        border: 1px solid #f2d1bf;
+        border-radius: 12px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 1.2rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .finishing-alert-icon {
+        font-size: 1.4rem;
+        flex-shrink: 0;
+        margin-top: 0.1rem;
+    }
+
+    .finishing-alert-content {
+        flex: 1;
+    }
+
+    .finishing-alert-text {
+        margin: 0;
+        color: #5a3a2a;
+        font-size: 0.9rem;
         line-height: 1.5;
     }
 
-    .prod-btn {
-        position: relative;
-        z-index: 1;
+    .finishing-alert-count {
+        font-weight: 700;
+        color: #7a2e0e;
+    }
+
+    .spk-dashboard-section {
+        margin-top: 1.5rem;
+    }
+
+    .spk-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e1e8f0;
+    }
+
+    .spk-dashboard-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #0d2749;
+        margin: 1.5rem 0 0;
+    }
+
+    .view-all-spk-btn {
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.65rem 1.6rem;
-        background: #c6a647;
+        padding: 0.55rem 1.2rem;
+        background: #ebc658;
         color: #0f2947;
         border: none;
         border-radius: 12px;
@@ -74,123 +211,400 @@
         white-space: nowrap;
     }
 
-    .prod-btn:hover {
-        background: #dfbf65;
-        transform: translateY(-2px);
+    .view-all-spk-btn:hover {
+        background: #f5c959;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(198, 166, 71, 0.25);
     }
 
-    .kpi-grid-modern {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 1.5rem;
+    .view-all-spk-btn:active {
+        transform: translateY(0);
     }
 
-    .kpi-card-modern {
-        border-radius: 14px;
-        border: 1px solid #d5e1eb;
+    .spk-card {
         background: #ffffff;
-        padding: 1.4rem;
-        box-shadow: 0 2px 8px rgba(15, 43, 61, 0.04);
+        border: 1px solid #e1e8f0;
+        border-radius: 12px;
+        padding: 1.2rem;
+        margin-bottom: 0.9rem;
+        box-shadow: 0 1px 3px rgba(15, 43, 61, 0.03);
         transition: all 0.2s;
     }
 
-    .kpi-card-modern:hover {
-        border-color: #c8d6e8;
-        box-shadow: 0 4px 12px rgba(15, 43, 61, 0.08);
+    .spk-card:hover {
+        border-color: #d0dce9;
+        box-shadow: 0 2px 6px rgba(15, 43, 61, 0.05);
     }
 
-    .kpi-card-modern.warn {
-        border-color: #f2d1bf;
-        background: linear-gradient(135deg, #fff9f5 0%, #fff1e7 100%);
+    .spk-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 0.8rem;
+        padding-bottom: 0.8rem;
+        border-bottom: 1px solid #f0f3f7;
     }
 
-    .kpi-card-modern.ok {
-        border-color: #bfe5d0;
-        background: linear-gradient(135deg, #f2fcf6 0%, #e9f9ef 100%);
+    .spk-info {
+        flex: 1;
     }
 
-    .kpi-title {
-        margin: 0 0 0.7rem;
-        color: #38536a;
-        font-size: 0.76rem;
+    .spk-code {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #0d2749;
+        margin: 0 0 0.15rem;
+    }
+
+    .spk-order-info {
+        font-size: 0.82rem;
+        color: #8da1b7;
+        margin: 0.1rem 0;
+        font-weight: 500;
+    }
+
+    .spk-status-badge {
+        display: inline-block;
+        padding: 0.3rem 0.65rem;
+        border-radius: 6px;
+        font-size: 0.68rem;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+        border: 1px solid;
     }
 
-    .kpi-value {
-        font-family: 'Playfair Display', serif;
-        font-size: clamp(1.42rem, 2.05vw, 1.86rem);
-        line-height: 1;
+    .spk-status-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.35rem;
+        flex-shrink: 0;
+    }
+
+    .spk-detail-link {
+        font-size: 0.75rem;
         font-weight: 700;
-        margin-bottom: 0.8rem;
+        color: #0c7fb6;
+        text-decoration: none;
+        line-height: 1;
     }
 
-    .kpi-card-modern.ok .kpi-value {
-        color: #0d5a34;
+    .spk-detail-link:hover {
+        color: #0a6b98;
+        text-decoration: underline;
     }
 
-    .kpi-card-modern.warn .kpi-value {
-        color: #7a2e0e;
+    .spk-status-badge.in-production {
+        background: rgba(198, 166, 71, 0.08);
+        color: #7a6b1a;
+        border-color: rgba(198, 166, 71, 0.2);
     }
 
-    .kpi-note {
-        font-size: 0.78rem;
-        line-height: 1.5;
+    .spk-status-badge.verified-payment {
+        background: rgba(12, 127, 182, 0.08);
+        color: #1e3a4c;
+        border-color: rgba(12, 127, 182, 0.2);
     }
 
-    .kpi-card-modern.ok .kpi-note {
-        color: #1e6f46;
+    .spk-status-badge.waiting-settlement {
+        background: rgba(217, 95, 24, 0.08);
+        color: #6a4a1a;
+        border-color: rgba(217, 95, 24, 0.2);
     }
 
-    .kpi-card-modern.warn .kpi-note {
-        color: #a44b16;
+    .spk-status-badge.production-complete {
+        background: rgba(15, 143, 96, 0.1);
+        color: #13603d;
+        border-color: rgba(15, 143, 96, 0.28);
+    }
+
+    .spk-timeline {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        overflow-x: auto;
+        padding-bottom: 0.3rem;
+    }
+
+    .spk-timeline::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .spk-timeline::-webkit-scrollbar-track {
+        background: #f0f3f7;
+        border-radius: 2px;
+    }
+
+    .spk-timeline::-webkit-scrollbar-thumb {
+        background: #d0dce9;
+        border-radius: 2px;
+    }
+
+    .spk-timeline-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        flex: 0 0 auto;
+        text-align: center;
+        min-width: 75px;
+    }
+
+    .spk-timeline-dot {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.65rem;
+        font-weight: 700;
+        position: relative;
+    }
+
+    .spk-timeline-dot.pending {
+        background: #f0f3f7;
+        color: #8da1b7;
+        border: 1.5px solid #d0dce9;
+    }
+
+    .spk-timeline-dot.in-progress {
+        background: linear-gradient(135deg, #c6a647, #dfbf65);
+        color: #ffffff;
+        border: none;
+        box-shadow: 0 0 0 3px rgba(198, 166, 71, 0.15);
+    }
+
+    .spk-timeline-dot.in-progress::after {
+        content: "";
+        position: absolute;
+        inset: -7px;
+        border-radius: 999px;
+        border: 1.5px solid rgba(198, 166, 71, 0.6);
+        opacity: 0;
+        pointer-events: none;
+        animation: timeline-pulse 1.6s ease-out infinite;
+    }
+
+    .spk-timeline-dot.done {
+        background: #0f8f60;
+        color: #ffffff;
+        border: none;
+    }
+
+    .spk-timeline-connector {
+        width: 16px;
+        height: 1.5px;
+        background: #d0dce9;
+        flex: 0 0 auto;
+    }
+
+    .spk-timeline-label {
+        font-size: 0.62rem;
+        color: #8da1b7;
+        font-weight: 500;
+        line-height: 1.2;
+        word-break: break-word;
+    }
+
+    .spk-timeline-item.in-progress .spk-timeline-label {
+        color: #7a6b1a;
+        font-weight: 600;
+    }
+
+    .spk-timeline-item.done .spk-timeline-label {
+        color: #0f8f60;
+    }
+
+    .spk-empty-state {
+        text-align: center;
+        padding: 1.5rem;
+        color: #8da1b7;
+    }
+
+    .spk-empty-state p {
+        margin: 0;
+        font-size: 0.85rem;
+    }
+
+    @keyframes timeline-pulse {
+        0% { transform: scale(0.78); opacity: 0.95; }
+        70% { transform: scale(1.18); opacity: 0; }
+        100% { transform: scale(1.18); opacity: 0; }
     }
 
     @media (max-width: 1024px) {
-        .production-header {
-            flex-direction: column;
-            align-items: flex-start;
+        .kpi-grid-modern {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 720px) {
+        .production-header h1 {
+            font-size: 1.2rem;
         }
 
         .kpi-grid-modern {
             grid-template-columns: 1fr;
         }
-    }
 
-    @media (max-width: 720px) {
-        .production-header {
-            flex-direction: column;
+        .spk-timeline {
+            gap: 0.3rem;
         }
 
-        .prod-btn {
-            width: 100%;
-            justify-content: center;
+        .spk-timeline-item {
+            min-width: 65px;
+        }
+
+        .spk-timeline-label {
+            font-size: 0.58rem;
         }
     }
 </style>
 
-<div class="production-header">
-    <div class="production-header-content">
+<div class="production-page">
+    <div class="production-header">
         <h1>Dashboard Produksi</h1>
-        <p>🏭 Kelola alur kerja produksi dari cutting sampai finishing. Pantau order yang terhambat dan status pembayaran real-time.</p>
+        <p>Monitor semua pekerjaan konveksi yang sedang berjalan</p>
     </div>
-    <a class="prod-btn" href="{{ route('production.index') }}">→ Buka Modul Produksi</a>
-</div>
 
-<div class="kpi-grid-modern">
-    <article class="kpi-card-modern ok">
-        <p class="kpi-title">Order Aktif</p>
-        <div class="kpi-value">{{ $activeOrders }}</div>
-        <div class="kpi-note">📦 Sedang berjalan dalam pipeline produksi.</div>
-    </article>
-
-    <article class="kpi-card-modern {{ $settlementRisk ? 'warn' : 'ok' }}">
-        <p class="kpi-title">Menunggu Pelunasan</p>
-        <div class="kpi-value">{{ $waitingSettlement }}</div>
-        <div class="kpi-note">
-            {{ $settlementRisk ? '⚠️ Perlu follow up keuangan/customer agar finishing bisa ditutup.' : '✓ Tidak ada hambatan pelunasan saat ini.' }}
+<!-- Finishing Settlement Alert -->
+@if($finishingWaitingSettlement > 0)
+    <div class="finishing-alert">
+        <div class="finishing-alert-icon">🚫</div>
+        <div class="finishing-alert-content">
+            <p class="finishing-alert-text">
+                Ada <span class="finishing-alert-count">{{ $finishingWaitingSettlement }} pesanan</span> pada tahap Finishing yang <strong>belum dapat dilanjutkan</strong> karena pelunasan belum dikonfirmasi.
+            </p>
         </div>
-    </article>
+    </div>
+@endif
+
+    <div class="kpi-grid-modern">
+        <article class="kpi-card-modern active">
+            <p class="kpi-title">Sedang Proses</p>
+            <div class="kpi-value">{{ $processingCount }}</div>
+            <div class="kpi-note">Order aktif dalam produksi</div>
+        </article>
+
+        <article class="kpi-card-modern completed">
+            <p class="kpi-title">Selesai Produksi</p>
+            <div class="kpi-value">{{ $completedProductionCount }}</div>
+            <div class="kpi-note">Tahap produksi sudah selesai</div>
+        </article>
+
+        <article class="kpi-card-modern blocked">
+            <p class="kpi-title">Menunggu Pelunasan</p>
+            <div class="kpi-value">{{ $waitingSettlement }}</div>
+            <div class="kpi-note">Blocked finishing</div>
+        </article>
+    </div>
+
+<!-- SPK Production Dashboard -->
+<div class="spk-dashboard-section">
+    <div class="spk-section-header">
+        <h2 class="spk-dashboard-title">SPK Aktif (Sedang Dikerjakan)</h2>
+        <a href="{{ route('production.index') }}" class="view-all-spk-btn">Lihat Semua SPK →</a>
+    </div>
+
+    @if($activeOrdersWithSteps->count() > 0)
+        @foreach($activeOrdersWithSteps as $order)
+            @php
+                $displaySteps = collect();
+                foreach ($order->productionSteps->sortBy('step_order')->values() as $step) {
+                    $displayName = $timelineStepName((string) $step->step_name);
+                    if ($displayName === null) {
+                        continue;
+                    }
+
+                    $displaySteps->push([
+                        'status' => $step->status,
+                        'title' => $displayName,
+                    ]);
+                }
+
+                $isOrderCompleted = $displaySteps->isNotEmpty() && $displaySteps->every(static fn ($step) => $step['status'] === 'done');
+
+                if ($isOrderCompleted) {
+                    $statusClass = 'production-complete';
+                    $statusLabel = 'Selesai Produksi';
+                } else {
+                    $statusClass = match($order->order_status) {
+                        'verified_payment' => 'verified-payment',
+                        'finishing_waiting_settlement' => 'waiting-settlement',
+                        default => 'in-production'
+                    };
+
+                    $statusLabel = match($order->order_status) {
+                        'verified_payment' => 'Siap Produksi',
+                        'finishing_waiting_settlement' => 'Menunggu Pelunasan',
+                        default => 'Sedang Produksi'
+                    };
+                }
+            @endphp
+            
+            <div class="spk-card">
+                <div class="spk-card-header">
+                    <div class="spk-info">
+                        <h3 class="spk-code">
+                            {{ $order->workOrder?->spk_number ?? 'SPK-' . str_pad($order->id, 4, '0', STR_PAD_LEFT) }}
+                        </h3>
+                        <div class="spk-order-info">
+                            {{ $order->order_code }} • {{ $order->customer_name }}
+                        </div>
+                        <div class="spk-order-info">
+                            {{ $order->product_name }} ({{ $order->total_pcs }} pcs)
+                        </div>
+                    </div>
+                    <div class="spk-status-actions">
+                        <span class="spk-status-badge {{ $statusClass }}">
+                            {{ $statusLabel }}
+                        </span>
+                        <a href="{{ route('production.show', $order) }}" class="spk-detail-link">Detail</a>
+                    </div>
+                </div>
+
+                @if($displaySteps->count() > 0)
+                    <div class="spk-timeline">
+                        @foreach($displaySteps as $index => $step)
+                            @if($index > 0)
+                                <div class="spk-timeline-connector"></div>
+                            @endif
+                            
+                            <div class="spk-timeline-item">
+                                @php
+                                    $dotClass = str_replace('_', '-', $step['status']);
+                                @endphp
+                                <div class="spk-timeline-dot {{ $dotClass }}">
+                                    @if($step['status'] === 'done')
+                                        ✓
+                                    @elseif($step['status'] === 'in_progress')
+                                        →
+                                    @else
+                                        {{ $index + 1 }}
+                                    @endif
+                                </div>
+                                <div class="spk-timeline-label">
+                                    {{ $step['title'] }}
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="spk-empty-state">
+                        <p>Belum ada tahap produksi yang terdaftar</p>
+                    </div>
+                @endif
+            </div>
+        @endforeach
+    @else
+        <div class="spk-empty-state">
+            <p>✨ Tidak ada SPK yang sedang dikerjakan saat ini</p>
+        </div>
+    @endif
+    </div>
 </div>
 @endsection

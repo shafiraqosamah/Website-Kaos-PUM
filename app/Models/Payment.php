@@ -44,6 +44,12 @@ class Payment extends Model
         'verified_by',
         'verified_at',
         'notes',
+        'midtrans_order_id',
+        'midtrans_transaction_id',
+        'midtrans_status',
+        'midtrans_payment_type',
+        'midtrans_fraud_status',
+        'midtrans_response',
     ];
 
     protected function casts(): array
@@ -52,6 +58,7 @@ class Payment extends Model
             'amount' => 'decimal:2',
             'invoiced_at' => 'datetime',
             'verified_at' => 'datetime',
+            'midtrans_response' => 'array',
         ];
     }
 

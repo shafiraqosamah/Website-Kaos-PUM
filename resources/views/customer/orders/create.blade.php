@@ -279,6 +279,272 @@
         font-size: 0.98rem;
     }
 
+    /* Material Picker Styles */
+    .material-picker-intro {
+        margin: 0 0 0.85rem;
+        font-size: 0.82rem;
+        color: #7893ae;
+    }
+
+    .material-choice-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.7rem;
+        margin-bottom: 0.9rem;
+    }
+
+    .material-choice {
+        border: 1px solid #c9d8e6;
+        border-radius: 14px;
+        background: #ffffff;
+        padding: 0.85rem 0.8rem;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        box-shadow: 0 1px 2px rgba(15, 43, 61, 0.03);
+    }
+
+    .material-choice:hover {
+        transform: translateY(-1px);
+        border-color: #b9cde2;
+        box-shadow: 0 4px 10px rgba(15, 43, 61, 0.06);
+    }
+
+    .material-choice.is-active {
+        border-color: #c8a949;
+        box-shadow: 0 0 0 3px rgba(200, 169, 73, 0.16);
+        background: #fffaf0;
+    }
+
+    .material-choice-title {
+        display: block;
+        margin: 0;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #0d2749;
+    }
+
+    .material-choice-subtitle {
+        display: block;
+        margin-top: 0.28rem;
+        font-size: 0.76rem;
+        color: #6f86a0;
+        line-height: 1.3;
+    }
+
+    .material-detail-card {
+        border: 1px solid #d9e4ef;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #fbfdff 0%, #f4f8fc 100%);
+        padding: 0.9rem 0.95rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .material-detail-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        margin-bottom: 0.7rem;
+    }
+
+    .material-detail-icon {
+        width: 52px;
+        height: 52px;
+        flex: 0 0 auto;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #ffffff;
+        border: 1px solid #e1e8f0;
+        box-shadow: 0 1px 3px rgba(15, 43, 61, 0.04);
+        font-size: 1.5rem;
+    }
+
+    .material-detail-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 12px;
+        display: none;
+    }
+
+    .material-detail-icon img.is-loaded {
+        display: block;
+    }
+
+    .material-detail-title {
+        margin: 0;
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: #0d2749;
+    }
+
+    .material-detail-description {
+        margin: 0.22rem 0 0;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        color: #6f86a0;
+    }
+
+    .material-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .material-tag {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.28rem 0.6rem;
+        border-radius: 999px;
+        background: #ffffff;
+        border: 1px solid #d7e2ec;
+        color: #35526a;
+        font-size: 0.74rem;
+        font-weight: 700;
+    }
+
+    .material-meta-title {
+        margin: 0.18rem 0 0.45rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 800;
+        color: #6f86a0;
+    }
+
+    .material-meta-group {
+        margin-bottom: 0.6rem;
+    }
+
+    .material-meta-list {
+        margin: 0;
+        padding-left: 1rem;
+        font-size: 0.78rem;
+        color: #4a6075;
+        line-height: 1.5;
+    }
+
+    .color-picker-section {
+        margin-top: 0.9rem;
+    }
+
+    .color-picker-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .color-option {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .color-option:hover {
+        transform: scale(1.1);
+    }
+
+    .color-option.is-selected {
+        border-color: #c8a949;
+        box-shadow: 0 0 0 3px rgba(200, 169, 73, 0.25);
+    }
+
+    .color-option[data-name="Putih"] {
+        border: 1px solid #d0dbe5;
+    }
+
+    .color-option[data-name="Putih"].is-selected {
+        border-color: #c8a949;
+    }
+
+    .selected-color-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-top: 0.6rem;
+        padding: 0.35rem 0.65rem;
+        background: #ffffff;
+        border: 1px solid #d7e2ec;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        color: #0d2749;
+        font-weight: 600;
+    }
+
+    .selected-color-chip .color-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .material-image-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(9, 22, 39, 0.7);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 80;
+        padding: 1.2rem;
+    }
+
+    .material-image-modal.is-open {
+        display: flex;
+    }
+
+    .material-image-dialog {
+        width: min(720px, 100%);
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #d7e3ee;
+        box-shadow: 0 14px 34px rgba(7, 21, 38, 0.24);
+        overflow: hidden;
+    }
+
+    .material-image-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0.9rem;
+        border-bottom: 1px solid #e2ebf3;
+    }
+
+    .material-image-head h4 {
+        margin: 0;
+        color: #14304f;
+        font-size: 0.92rem;
+        font-weight: 700;
+    }
+
+    .material-image-close {
+        background: none;
+        border: none;
+        font-size: 1.4rem;
+        color: #6f86a0;
+        cursor: pointer;
+        padding: 0.2rem;
+        line-height: 1;
+    }
+
+    .material-image-body {
+        padding: 1rem;
+    }
+
+    .material-image-body img {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+    }
+
     @media (max-width: 820px) {
         .order-page-header {
             margin-top: 0.4rem;
@@ -331,6 +597,10 @@
 
 <form id="orderForm" class="order-form-layout" method="POST" action="{{ route('customer.orders.store') }}" enctype="multipart/form-data">
     @csrf
+    <input type="hidden" id="fabricInput" name="fabric" value="{{ old('fabric', $preset['fabric'] ?? '') }}">
+    <input type="hidden" id="dominantColorInput" name="dominant_color" value="{{ old('dominant_color', $preset['dominant_color'] ?? '') }}">
+    <input type="hidden" name="payment_type" value="{{ old('payment_type', 'dp') }}">
+    <input type="hidden" id="productionQty" name="production_qty" value="{{ old('production_qty', $preset['production_qty'] ?? 60) }}">
     <div class="order-form-columns">
         <div class="order-main-card">
             <h2 class="section-heading">Detail Produk</h2>
@@ -339,18 +609,6 @@
                 <div>
                     <label>Nama Pemesan <span class="required-star">*</span></label>
                     <input type="text" name="customer_name" value="{{ old('customer_name', auth()->user()->name) }}" required>
-                </div>
-                <div>
-                    <label>Bahan <span class="required-star">*</span></label>
-                    <select name="fabric" id="fabricSelect" required>
-                        @foreach ($materials as $material)
-                            <option value="{{ $material }}" @selected(old('fabric', $preset['fabric'] ?? 'Cotton Combed 30s') === $material)>{{ $material }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div id="otherFabricWrap" style="display:none;">
-                    <label>Jenis Bahan Lain <span class="required-star">*</span></label>
-                    <input type="text" id="otherFabricInput" name="other_fabric" value="{{ old('other_fabric') }}" placeholder="Contoh: Baby Terry">
                 </div>
                 <div>
                     <label>Total Pcs <span class="required-star">*</span></label>
@@ -380,7 +638,6 @@
                     <label>Posisi Desain Lainnya <span class="required-star">*</span></label>
                     <input type="text" id="designPositionOther" name="design_position_other" value="{{ old('design_position_other') }}" placeholder="Contoh: Lengan kanan + punggung bawah">
                 </div>
-                <input type="hidden" id="productionQty" name="production_qty" value="{{ old('production_qty', $preset['production_qty'] ?? 60) }}">
                 <div>
                     <label>Model <span class="required-star">*</span></label>
                     <select name="product_model" required>
@@ -397,32 +654,88 @@
                         @endforeach
                     </select>
                 </div>
-                <div>
-                    <label>Warna Dominan <span class="required-star">*</span></label>
-                    <input type="text" name="dominant_color" value="{{ old('dominant_color', $preset['dominant_color'] ?? 'Hitam') }}" required>
+            </div>
+
+            <!-- Pilih Bahan & Warna Section -->
+            <div style="margin-top: 1.2rem;">
+                <h2 class="section-heading">Pilih Bahan & Warna</h2>
+                <div class="section-divider"></div>
+                
+                <p class="material-picker-intro">Pilih jenis bahan untuk melihat detail dan warna yang tersedia.</p>
+                
+                <div class="material-choice-grid" id="materialChoiceGrid">
+                    @foreach ($materialCatalog as $materialKey => $materialData)
+                        <button type="button" class="material-choice" data-material="{{ $materialKey }}">
+                            <span class="material-choice-title">{{ $materialKey }}</span>
+                            <span class="material-choice-subtitle">{{ $materialData['title'] ?? '' }}</span>
+                        </button>
+                    @endforeach
                 </div>
-                <div>
-                    <label>Estimasi Tanggal Selesai <span class="required-star">*</span></label>
-                    <input type="date" name="estimated_finish_date" min="{{ now()->addDays(10)->toDateString() }}" value="{{ old('estimated_finish_date') }}" required>
-                    <small class="muted">Pilih tanggal estimasi di atas. Estimasi produksi normal 10-21 hari kerja tergantung jumlah dan kompleksitas desain. Tim kami akan mengkonfirmasi kelayakan tanggal.</small>
-                </div>
-                <input type="hidden" name="payment_type" value="{{ old('payment_type', 'dp') }}">
-                <div class="field-full">
-                    <label>Upload Desain (maksimal 2 file: jpg/png/pdf/svg)</label>
-                    <div class="grid grid-2" style="gap:0.65rem;">
-                        <div>
-                            <label style="font-size:0.75rem; color:#6f86a0; font-weight:600; margin-bottom:0.3rem;">File Desain 1</label>
-                            <input type="file" name="design_front_file">
+
+                <div id="materialDetailCard" class="material-detail-card" style="display: none;">
+                    <div class="material-detail-head">
+                        <div class="material-detail-icon" onclick="if(materialDetailImage.src && materialDetailImage.src !== window.location.href) openMaterialImageModal(materialDetailImage.src, materialDetailTitle.textContent)" style="cursor: zoom-in;">
+                            <img id="materialDetailImage" src="" alt="Material image">
+                            <span id="materialDetailIcon">🧵</span>
                         </div>
                         <div>
-                            <label style="font-size:0.75rem; color:#6f86a0; font-weight:600; margin-bottom:0.3rem;">File Desain 2</label>
-                            <input type="file" name="design_back_file">
+                            <h3 class="material-detail-title" id="materialDetailTitle"></h3>
+                            <p class="material-detail-description" id="materialDetailDescription"></p>
+                        </div>
+                    </div>
+                    <div class="material-tags" id="materialTags"></div>
+                    <div class="material-meta-group" id="suitableForGroup" style="display: none;">
+                        <p class="material-meta-title">Cocok Untuk</p>
+                        <ul class="material-meta-list" id="materialSuitableFor"></ul>
+                    </div>
+                    @if (!empty($materialData['design_application']))
+                    <div class="material-meta-group">
+                        <p class="material-meta-title">Aplikasi Desain</p>
+                        <ul class="material-meta-list" id="materialDesignApp"></ul>
+                    </div>
+                    @endif
+                    
+                    <div class="color-picker-section">
+                        <p class="material-meta-title">Pilih Warna</p>
+                        <div class="color-picker-grid" id="colorPickerGrid"></div>
+                        <div id="selectedColorChip" class="selected-color-chip" style="display: none;">
+                            <span class="color-dot"></span>
+                            <span id="selectedColorName"></span>
                         </div>
                     </div>
                 </div>
-                <div class="field-full">
-                    <label>Catatan</label>
-                    <textarea name="notes" rows="3" placeholder="Tambahkan catatan kebutuhan desain atau produksi (opsional)">{{ old('notes') }}</textarea>
+
+                <div id="otherFabricWrap" style="display: none; margin-top: 0.9rem;">
+                    <label>Jenis Bahan Lain <span class="required-star">*</span></label>
+                    <input type="text" id="otherFabricInput" name="other_fabric" value="{{ old('other_fabric') }}" placeholder="Contoh: Baby Terry">
+                </div>
+            </div>
+
+            <!-- Estimasi, Upload, Catatan after Pilih Bahan & Warna -->
+            <div style="margin-top: 1.2rem;">
+                <div class="main-fields-grid">
+                    <div class="field-full">
+                        <label>Estimasi Tanggal Selesai <span class="required-star">*</span></label>
+                        <input type="date" name="estimated_finish_date" min="{{ now()->addDays(10)->toDateString() }}" value="{{ old('estimated_finish_date') }}" required>
+                        <small class="muted">Pilih tanggal estimasi di atas. Estimasi produksi normal 10-21 hari kerja tergantung jumlah dan kompleksitas desain. Tim kami akan mengkonfirmasi kelayakan tanggal.</small>
+                    </div>
+                    <div class="field-full">
+                        <label>Upload Desain (maksimal 2 file: jpg/png/pdf/svg)</label>
+                        <div class="grid grid-2" style="gap:0.65rem;">
+                            <div>
+                                <label style="font-size:0.75rem; color:#6f86a0; font-weight:600; margin-bottom:0.3rem;">File Desain 1</label>
+                                <input type="file" name="design_front_file">
+                            </div>
+                            <div>
+                                <label style="font-size:0.75rem; color:#6f86a0; font-weight:600; margin-bottom:0.3rem;">File Desain 2</label>
+                                <input type="file" name="design_back_file">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-full">
+                        <label>Catatan</label>
+                        <textarea name="notes" rows="3" placeholder="Tambahkan catatan kebutuhan desain atau produksi (opsional)">{{ old('notes') }}</textarea>
+                    </div>
                 </div>
             </div>
         </div>
@@ -501,6 +814,19 @@
     </div>
 </form>
 
+<!-- Material Image Modal -->
+<div id="materialImageModal" class="material-image-modal">
+    <div class="material-image-dialog">
+        <div class="material-image-head">
+            <h4 id="materialImageTitle">Detail Bahan</h4>
+            <button type="button" class="material-image-close" onclick="closeMaterialImageModal()">&times;</button>
+        </div>
+        <div class="material-image-body">
+            <img id="materialImageSrc" src="" alt="Material detail">
+        </div>
+    </div>
+</div>
+
 <script>
 (() => {
     const materialPrices = {
@@ -524,7 +850,9 @@
         'Bordiran': 6000,
     };
 
-    const fabricSelect = document.getElementById('fabricSelect');
+    const materialCatalog = @json($materialCatalog ?? []);
+    const fabricInput = document.getElementById('fabricInput');
+    const dominantColorInput = document.getElementById('dominantColorInput');
     const otherFabricInput = document.getElementById('otherFabricInput');
     const otherFabricWrap = document.getElementById('otherFabricWrap');
     const unitPriceInput = document.getElementById('unitPrice');
@@ -552,12 +880,28 @@
     const summarySurcharge = document.getElementById('summarySurcharge');
     const summaryGrandTotal = document.getElementById('summaryGrandTotal');
 
+    // Material picker elements
+    const materialChoiceGrid = document.getElementById('materialChoiceGrid');
+    const materialDetailCard = document.getElementById('materialDetailCard');
+    const materialDetailTitle = document.getElementById('materialDetailTitle');
+    const materialDetailDescription = document.getElementById('materialDetailDescription');
+    const materialDetailImage = document.getElementById('materialDetailImage');
+    const materialDetailIcon = document.getElementById('materialDetailIcon');
+    const materialTags = document.getElementById('materialTags');
+    const materialSuitableFor = document.getElementById('materialSuitableFor');
+    const materialDesignApp = document.getElementById('materialDesignApp');
+    const colorPickerGrid = document.getElementById('colorPickerGrid');
+    const selectedColorChip = document.getElementById('selectedColorChip');
+
+    let selectedMaterial = null;
+    let selectedColor = null;
+
     const formatRupiah = (value) => {
         return 'Rp' + new Intl.NumberFormat('id-ID').format(value || 0);
     };
 
     const updateMaterialAndPrice = () => {
-        const fabric = fabricSelect.value;
+        const fabric = fabricInput.value || 'Cotton Combed 30s';
         const basePrice = materialPrices[fabric] ?? 85000;
         const techniqueExtra = techniqueSurcharge[productionTypeSelect.value] ?? 0;
         const finalPrice = basePrice + techniqueExtra;
@@ -653,9 +997,9 @@
 
         surchargeText.textContent = formatRupiah(surcharge);
 
-        const resolvedFabric = fabricSelect.value === 'Lainnya'
+        const resolvedFabric = fabricInput.value === 'Lainnya'
             ? (otherFabricInput.value?.trim() || 'Lainnya')
-            : fabricSelect.value;
+            : (fabricInput.value || '-');
 
         summaryFabric.textContent = resolvedFabric;
         summaryTotalPcs.textContent = `${totalPcs || 0} pcs`;
@@ -665,10 +1009,141 @@
         summaryGrandTotal.textContent = formatRupiah(estimatedSubtotal);
     };
 
-    [fabricSelect, otherFabricInput, productionTypeSelect, designPositionSelect, designPositionOtherInput, modelSelect, sleeveTypeSelect, totalPcsInput, ...sizeInputs, ...Array.from(orderForm.querySelectorAll('input, select, textarea'))].forEach((el) => {
-        if (!el) {
-            return;
+    // Material picker functions
+    const selectMaterial = (materialKey) => {
+        selectedMaterial = materialKey;
+        fabricInput.value = materialKey;
+        
+        // Update UI
+        document.querySelectorAll('.material-choice').forEach(btn => {
+            btn.classList.toggle('is-active', btn.dataset.material === materialKey);
+        });
+
+        const data = materialCatalog[materialKey];
+        if (!data) return;
+
+        materialDetailCard.style.display = 'block';
+        materialDetailTitle.textContent = materialKey;
+        materialDetailDescription.textContent = data.description || '';
+
+        // Handle image
+        if (data.image) {
+            materialDetailImage.src = '{{ asset("/") }}' + data.image;
+            materialDetailImage.classList.add('is-loaded');
+            materialDetailImage.style.display = 'block';
+            materialDetailIcon.style.display = 'none';
+        } else {
+            materialDetailImage.style.display = 'none';
+            materialDetailImage.classList.remove('is-loaded');
+            materialDetailIcon.style.display = 'flex';
         }
+
+        // Tags
+        materialTags.innerHTML = '';
+        if (data.tags && data.tags.length) {
+            data.tags.forEach(tag => {
+                const span = document.createElement('span');
+                span.className = 'material-tag';
+                span.textContent = tag;
+                materialTags.appendChild(span);
+            });
+        }
+
+        // Suitable for
+        materialSuitableFor.innerHTML = '';
+        const suitableForGroup = document.getElementById('suitableForGroup');
+        if (data.suitable_for && data.suitable_for.length) {
+            suitableForGroup.style.display = 'block';
+            data.suitable_for.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                materialSuitableFor.appendChild(li);
+            });
+        } else {
+            suitableForGroup.style.display = 'none';
+        }
+
+        // Design application
+        materialDesignApp.innerHTML = '';
+        const designAppGroup = document.getElementById('designAppGroup');
+        if (data.design_application && data.design_application.length) {
+            designAppGroup.style.display = 'block';
+            data.design_application.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                materialDesignApp.appendChild(li);
+            });
+        } else {
+            designAppGroup.style.display = 'none';
+        }
+
+        // Colors
+        colorPickerGrid.innerHTML = '';
+        selectedColor = null;
+        dominantColorInput.value = '';
+        selectedColorChip.style.display = 'none';
+
+        if (data.colors && data.colors.length) {
+            data.colors.forEach(color => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'color-option';
+                btn.dataset.name = color.name;
+                btn.dataset.hex = color.hex;
+                btn.style.backgroundColor = color.hex;
+                btn.title = color.name;
+                btn.addEventListener('click', () => selectColor(color.name, color.hex));
+                colorPickerGrid.appendChild(btn);
+            });
+        }
+
+        // Show/hide other fabric input
+        otherFabricWrap.style.display = materialKey === 'Lainnya' ? 'block' : 'none';
+        otherFabricInput.required = materialKey === 'Lainnya';
+
+        updateMaterialAndPrice();
+        updateSurchargeAndEstimate();
+    };
+
+    const selectColor = (colorName, colorHex) => {
+        selectedColor = colorName;
+        dominantColorInput.value = colorName;
+
+        document.querySelectorAll('.color-option').forEach(btn => {
+            btn.classList.toggle('is-selected', btn.dataset.name === colorName);
+        });
+
+        const chip = selectedColorChip;
+        chip.style.display = 'inline-flex';
+        chip.querySelector('.color-dot').style.backgroundColor = colorHex;
+        chip.querySelector('#selectedColorName').textContent = colorName;
+    };
+
+    // Initialize material picker
+    const initMaterialPicker = () => {
+        const buttons = materialChoiceGrid.querySelectorAll('.material-choice');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => selectMaterial(btn.dataset.material));
+        });
+
+        // Check for pre-selected values
+        if (fabricInput.value && materialCatalog[fabricInput.value]) {
+            selectMaterial(fabricInput.value);
+            if (dominantColorInput.value) {
+                const data = materialCatalog[fabricInput.value];
+                if (data && data.colors) {
+                    const color = data.colors.find(c => c.name === dominantColorInput.value);
+                    if (color) {
+                        selectColor(color.name, color.hex);
+                    }
+                }
+            }
+        }
+    };
+
+    // Event listeners
+    [otherFabricInput, productionTypeSelect, designPositionSelect, designPositionOtherInput, modelSelect, sleeveTypeSelect, totalPcsInput, ...sizeInputs, ...Array.from(orderForm.querySelectorAll('input, select, textarea'))].forEach((el) => {
+        if (!el) return;
 
         el.addEventListener('input', () => {
             if (el.classList.contains('size-input')) {
@@ -695,6 +1170,8 @@
         });
     });
 
+    // Initialize
+    initMaterialPicker();
     applySizeLimits();
     updateMaterialAndPrice();
     updateDesignPositionField();
@@ -712,11 +1189,42 @@
             return;
         }
 
+        if (!fabricInput.value) {
+            event.preventDefault();
+            submitHint.textContent = 'Pilih bahan terlebih dahulu.';
+            submitHint.style.color = '#8f2f2f';
+            return;
+        }
+
+        if (!dominantColorInput.value) {
+            event.preventDefault();
+            submitHint.textContent = 'Pilih warna terlebih dahulu.';
+            submitHint.style.color = '#8f2f2f';
+            return;
+        }
+
         if (!orderForm.checkValidity()) {
             event.preventDefault();
             orderForm.reportValidity();
             submitHint.textContent = 'Lengkapi semua field wajib (kecuali Catatan) sebelum membuat pesanan.';
             submitHint.style.color = '#8f2f2f';
+        }
+    });
+
+    // Modal functions
+    window.openMaterialImageModal = (imageSrc, title) => {
+        document.getElementById('materialImageSrc').src = imageSrc;
+        document.getElementById('materialImageTitle').textContent = title || 'Detail Bahan';
+        document.getElementById('materialImageModal').classList.add('is-open');
+    };
+
+    window.closeMaterialImageModal = () => {
+        document.getElementById('materialImageModal').classList.remove('is-open');
+    };
+
+    document.getElementById('materialImageModal').addEventListener('click', (e) => {
+        if (e.target.id === 'materialImageModal') {
+            closeMaterialImageModal();
         }
     });
 })();

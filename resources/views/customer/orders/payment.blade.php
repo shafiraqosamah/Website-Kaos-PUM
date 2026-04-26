@@ -1,6 +1,25 @@
 @extends('layouts.app')
 
 @section('content')
+<!-- Load Midtrans Snap JS -->
+@php
+    $clientKey = config('midtrans.client_key');
+    if (!$clientKey) {
+        \Log::warning('Midtrans Client Key not configured');
+    }
+@endphp
+<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ $clientKey }}"></script>
+<script>
+    // Verify Snap library loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        if (!window.snap) {
+            console.error('Midtrans Snap library failed to load. Client Key:', '{{ $clientKey }}');
+        } else {
+            console.log('Midtrans Snap library loaded successfully');
+        }
+    });
+</script>
+
 @php
     $sizeBreakdown = $order->sizes
         ->map(fn ($size) => $size->size_name . ' (' . $size->qty . ')')
@@ -403,6 +422,108 @@
         align-items: center;
     }
 
+    .payment-method-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.65rem;
+        margin-bottom: 1rem;
+    }
+
+    .payment-method-tab {
+        position: relative;
+    }
+
+    .payment-method-tab input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .payment-method-tab-label {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border: 2px solid #c8d7e7;
+        border-radius: 12px;
+        background: #f7f9fc;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #0d2749;
+    }
+
+    .payment-method-tab input:checked + .payment-method-tab-label {
+        border-color: #c8a949;
+        background: #f2f0ea;
+        color: #0d2749;
+    }
+
+    .payment-method-content {
+        display: none;
+    }
+
+    .payment-method-content.active {
+        display: block;
+    }
+
+    .btn-pay-midtrans {
+        width: 100%;
+        padding: 0.95rem 1rem;
+        background: linear-gradient(135deg, #2299dd, #1a74b8);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 0.96rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-pay-midtrans:hover {
+        background: linear-gradient(135deg, #1a87cc, #1565a8);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(34, 153, 221, 0.3);
+    }
+
+    .btn-pay-midtrans:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .payment-status-info {
+        padding: 0.75rem 1rem;
+        background: #f0f4f8;
+        border-left: 4px solid #2299dd;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        color: #1a4a75;
+        margin-bottom: 1rem;
+    }
+
+    .payment-status-info.settled {
+        background: #e1f4e1;
+        border-left-color: #1c6a47;
+        color: #1c6a47;
+    }
+
+    .payment-status-info.rejected {
+        background: #ffe1e1;
+        border-left-color: #c13a2f;
+        color: #8f2f2f;
+    }
+
+    #midtransStatusInfo {
+        display: none;
+    }
+
+    #midtransStatusInfo.show {
+        display: block;
+    }
+
     .rejected-alert {
         grid-column: 1 / -1;
         border: 1px solid #efc1b8;
@@ -436,6 +557,109 @@
         opacity: 0.6;
         cursor: not-allowed;
         filter: grayscale(0.1);
+    }
+
+    /* Success Modal Styles */
+    .success-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .success-modal-overlay.show {
+        display: flex;
+    }
+
+    .success-modal {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        max-width: 420px;
+        text-align: center;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .success-modal-icon {
+        width: 60px;
+        height: 60px;
+        background: #1c6a47;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2rem;
+    }
+
+    .success-modal h2 {
+        margin: 0 0 0.8rem;
+        font-family: 'Playfair Display', serif;
+        font-size: 1.6rem;
+        color: #0d2749;
+        line-height: 1.2;
+    }
+
+    .success-modal p {
+        margin: 0 0 1.5rem;
+        color: #6f86a0;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .success-modal-order-code {
+        background: #f4f0e8;
+        border-radius: 12px;
+        padding: 0.8rem;
+        margin-bottom: 1.5rem;
+        font-family: 'Courier New', monospace;
+        font-weight: 700;
+        color: #0d2749;
+        font-size: 0.95rem;
+    }
+
+    .success-modal-button {
+        display: inline-block;
+        width: 100%;
+        padding: 0.95rem 1rem;
+        background: linear-gradient(135deg, #1c6a47, #155638);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 0.96rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .success-modal-button:hover {
+        background: linear-gradient(135deg, #155638, #0d4d2e);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(28, 106, 71, 0.3);
+    }
+
+    .countdown-timer {
+        font-size: 0.85rem;
+        color: #999;
+        margin-top: 1rem;
     }
 
     @media (max-width: 1100px) {
@@ -492,7 +716,7 @@
                 <div class="section-divider"></div>
                 <div class="payment-option-grid">
                     <label class="payment-option">
-                        <input type="radio" name="payment_option" value="dp" form="paymentForm" @checked($selectedOption === 'dp')>
+                        <input type="radio" name="payment_option" value="dp" @checked($selectedOption === 'dp')>
                         <span class="payment-option-label">
                             <p class="payment-option-title">💳 DP 50%</p>
                             <p class="payment-option-desc">Bayar sekarang 50%, sisanya saat finishing</p>
@@ -500,7 +724,7 @@
                     </label>
 
                     <label class="payment-option">
-                        <input type="radio" name="payment_option" value="full" form="paymentForm" @checked($selectedOption === 'full')>
+                        <input type="radio" name="payment_option" value="full" @checked($selectedOption === 'full')>
                         <span class="payment-option-label">
                             <p class="payment-option-title">✅ Lunas</p>
                             <p class="payment-option-desc">Bayar penuh sekarang</p>
@@ -551,153 +775,323 @@
     </div>
 
     <div class="payment-form-card">
-        <form id="paymentForm" method="POST" action="{{ route('customer.orders.payments.update', [$order, $payment]) }}" enctype="multipart/form-data" class="payment-fields-grid">
-            @csrf
-            @if ($payment->status === 'rejected')
-                <div class="rejected-alert">
-                    <h4>⚠️ Bukti pembayaran ditolak</h4>
-                    <p><strong>Alasan:</strong> {{ $rejectionReasonLabel ?: 'Lihat catatan keuangan pada detail pembayaran.' }}</p>
-                    <p><strong>Tindakan:</strong> {{ $rejectionActionText ?: 'Perbaiki data pembayaran lalu upload ulang bukti pembayaran.' }}</p>
-                    @if ($payment->proof_path)
-                        <p><a href="{{ route('customer.orders.payments.proof', [$order, $payment]) }}" target="_blank">Lihat bukti yang sebelumnya diupload</a></p>
-                    @endif
-                </div>
-            @endif
+        <h3 class="section-heading">Metode Pembayaran</h3>
+        <div class="section-divider"></div>
 
-            <div class="field-full">
-                <h3 class="section-heading">Rekening Tujuan</h3>
-                <div class="section-divider"></div>
-                <div class="bank-list">
-                    @foreach ($banks as $bankKey => $bank)
-                        <div class="bank-item">
-                            <strong>{{ $bank['label'] }}</strong>
-                            <div class="muted">No. Rek: {{ $bank['account_number'] }}</div>
-                            <div class="muted">a.n. {{ $bank['account_name'] }}</div>
-                        </div>
-                    @endforeach
-                </div>
+        <div class="payment-method-tabs">
+            <label class="payment-method-tab">
+                <input type="radio" name="payment_method_choice" value="midtrans" id="methodMidtrans" checked>
+                <span class="payment-method-tab-label">💳 Midtrans Payment Gateway</span>
+            </label>
+        </div>
+
+        <!-- Midtrans Payment Method -->
+        <div id="midtransMethod" class="payment-method-content active">
+            <div class="payment-status-info">
+                ℹ️ Metode pembayaran Midtrans | Bayar dengan VA, E-wallet, QRIS, atau Kartu Kredit
             </div>
 
-            <div>
-                <label>Transfer ke Bank <span class="required-star">*</span></label>
-                <select name="destination_bank" required>
-                    <option value="">Pilih bank tujuan</option>
-                    @foreach ($banks as $bankKey => $bank)
-                        <option value="{{ $bankKey }}" @selected(old('destination_bank', $payment->destination_bank) === $bankKey)>{{ $bank['label'] }} - {{ $bank['account_number'] }}</option>
-                    @endforeach
-                </select>
+            <div id="midtransStatusInfo" class="payment-status-info"></div>
+
+            <div style="display: grid; gap: 0.65rem; margin-bottom: 1rem;">
+                <p style="margin: 0; font-size: 0.9rem; color: #0d2749;"><strong>Jumlah Pembayaran yang Harus Dibayar:</strong></p>
+                <p style="margin: 0; font-size: 1.2rem; color: #0d2749; font-weight: 700;">
+                    <span id="midtransAmount">Rp 0</span>
+                </p>
             </div>
-            <div>
-                <label>Bank Pengirim <span class="required-star">*</span></label>
-                <input type="text" name="sender_bank_name" value="{{ old('sender_bank_name', $payment->sender_bank_name) }}" placeholder="Contoh: BRI / BCA / Dana" required>
-            </div>
-            <div>
-                <label>Atas Nama Rekening Pengirim <span class="required-star">*</span></label>
-                <input type="text" name="sender_account_name" value="{{ old('sender_account_name', $payment->sender_account_name) }}" required>
-            </div>
-            <div>
-                <label>Upload Bukti Pembayaran <span class="required-star">*</span></label>
-                <input type="file" name="payment_proof" required>
-                @if ($payment->proof_path)
-                    <p class="muted" style="margin:0.45rem 0 0;">Bukti saat ini sudah tersimpan. Untuk kirim ulang data, upload bukti terbaru wajib dilakukan.</p>
-                @endif
-            </div>
-            <div class="field-full">
-                <label>Catatan Pembayaran</label>
-                <textarea name="notes" rows="3" placeholder="Opsional, misalnya tanggal transfer atau keterangan tambahan">{{ old('notes', $customerVisibleNotes) }}</textarea>
-            </div>
-            <div class="field-full payment-submit-row">
-                <p
-                    id="paymentSubmitHint"
-                    class="submit-hint"
-                    data-default-hint="{{ $payment->status === 'rejected' ? 'Lengkapi field wajib untuk mengirim ulang bukti pembayaran sesuai arahan keuangan.' : 'Lengkapi semua field wajib untuk mengaktifkan tombol Kirim Data Pembayaran.' }}"
-                    data-success-hint="{{ $payment->status === 'rejected' ? 'Semua field wajib sudah diisi. Anda bisa kirim ulang bukti pembayaran.' : 'Semua field wajib sudah diisi. Anda bisa kirim data pembayaran.' }}"
-                >{{ $payment->status === 'rejected' ? 'Lengkapi field wajib untuk mengirim ulang bukti pembayaran sesuai arahan keuangan.' : 'Lengkapi semua field wajib untuk mengaktifkan tombol Kirim Data Pembayaran.' }}</p>
-                <button id="paymentSubmitBtn" type="submit" class="btn btn-brand" disabled>{{ $payment->status === 'rejected' ? 'Kirim Ulang Bukti Pembayaran' : 'Kirim Data Pembayaran' }}</button>
-            </div>
-        </form>
+
+            <button type="button" id="btnPayMidtrans" class="btn-pay-midtrans">Klik Bayar Sekarang</button>
+
+            <p style="margin: 0.75rem 0 0; font-size: 0.8rem; color: #666; text-align: center;">Klik tombol untuk membuka halaman pembayaran Midtrans</p>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div id="successModal" class="success-modal-overlay">
+    <div class="success-modal">
+        <div class="success-modal-icon">✓</div>
+        <h2>Pembayaran Berhasil!</h2>
+        <p>Pembayaran Anda telah berhasil diproses. Pesanan Anda sedang dipersiapkan untuk produksi.</p>
+        <div class="success-modal-order-code" id="successOrderCode">
+            Order: #{{ $order->order_code }}
+        </div>
+        <button id="successModalButton" class="success-modal-button" type="button">
+            Lihat Riwayat Transaksi
+        </button>
+        <div class="countdown-timer">
+            Halaman akan otomatis redirect dalam <span id="countdown">5</span> detik
+        </div>
     </div>
 </div>
 
 <script>
 (() => {
-    const paymentForm = document.getElementById('paymentForm');
-    const submitBtn = document.getElementById('paymentSubmitBtn');
-    const submitHint = document.getElementById('paymentSubmitHint');
-    const optionInputs = Array.from(document.querySelectorAll('input[name="payment_option"][form="paymentForm"], #paymentForm input[name="payment_option"]'));
+    const btnPayMidtrans = document.getElementById('btnPayMidtrans');
+    const midtransAmountSpan = document.getElementById('midtransAmount');
+    const midtransStatusInfo = document.getElementById('midtransStatusInfo');
+    const paymentOptionInputs = Array.from(document.querySelectorAll('input[name="payment_option"]'));
     const paymentBreakdown = document.getElementById('paymentBreakdown');
-    const breakdownDpPrimary = paymentBreakdown ? paymentBreakdown.querySelector('[data-breakdown="dp-primary"]') : null;
-    const breakdownDpSecondary = paymentBreakdown ? paymentBreakdown.querySelector('[data-breakdown="dp-secondary"]') : null;
-    const breakdownFullPrimary = paymentBreakdown ? paymentBreakdown.querySelector('[data-breakdown="full-primary"]') : null;
+    const successModal = document.getElementById('successModal');
+    const successModalButton = document.getElementById('successModalButton');
+    const countdownSpan = document.getElementById('countdown');
+    const isSettlementPayment = @json($isSettlementPayment);
+    const settlementRemaining = Number(@json((float) $settlementRemaining));
+    const ordersIndexUrl = @json(route('customer.orders.index'));
 
-    const requiredFields = Array.from(paymentForm.querySelectorAll('input[required], select[required], textarea[required]'));
-    const defaultHintText = submitHint.dataset.defaultHint || 'Lengkapi semua field wajib untuk mengaktifkan tombol kirim.';
-    const successHintText = submitHint.dataset.successHint || 'Semua field wajib sudah diisi.';
+    let countdownValue = 5;
+    let countdownInterval = null;
+    let redirectInProgress = false;
+    let activePaymentId = null;
 
     const formatCurrency = (value) => new Intl.NumberFormat('id-ID').format(Number(value || 0));
 
-    const refreshBreakdown = () => {
-        if (!paymentBreakdown || optionInputs.length === 0) {
+    const getSelectedOption = () => paymentOptionInputs.find((input) => input.checked)?.value || 'dp';
+
+    const getSelectedPaymentAmount = () => {
+        if (isSettlementPayment) {
+            return settlementRemaining;
+        }
+
+        if (!paymentBreakdown) return 0;
+
+        const selectedOption = getSelectedOption();
+        const subtotal = Number(paymentBreakdown.dataset.subtotal || 0);
+        return selectedOption === 'full' ? subtotal : subtotal * 0.5;
+    };
+
+    const updatePaymentBreakdown = () => {
+        if (isSettlementPayment || !paymentBreakdown) {
             return;
         }
 
-        const selectedOption = optionInputs.find((input) => input.checked)?.value || 'dp';
-        const subtotal = Number(paymentBreakdown.dataset.subtotal || 0);
-        const half = Number(paymentBreakdown.dataset.dp || 0);
-
-        document.getElementById('breakdownTotal').textContent = `Rp ${formatCurrency(subtotal)}`;
-        document.getElementById('breakdownDpNow').textContent = `Rp ${formatCurrency(half)}`;
-        document.getElementById('breakdownDpRemain').textContent = `Rp ${formatCurrency(half)}`;
-        document.getElementById('breakdownFullNow').textContent = `Rp ${formatCurrency(subtotal)}`;
+        const selectedOption = getSelectedOption();
+        const dpNowRow = paymentBreakdown.querySelector('[data-breakdown="dp-primary"]');
+        const dpRemainRow = paymentBreakdown.querySelector('[data-breakdown="dp-secondary"]');
+        const fullNowRow = paymentBreakdown.querySelector('[data-breakdown="full-primary"]');
 
         if (selectedOption === 'full') {
-            breakdownDpPrimary.style.display = 'none';
-            breakdownDpSecondary.style.display = 'none';
-            breakdownFullPrimary.style.display = 'flex';
-        } else {
-            breakdownDpPrimary.style.display = 'flex';
-            breakdownDpSecondary.style.display = 'flex';
-            breakdownFullPrimary.style.display = 'none';
+            if (dpNowRow) dpNowRow.style.display = 'none';
+            if (dpRemainRow) dpRemainRow.style.display = 'none';
+            if (fullNowRow) fullNowRow.style.display = 'flex';
+            return;
+        }
+
+        if (dpNowRow) dpNowRow.style.display = 'flex';
+        if (dpRemainRow) dpRemainRow.style.display = 'flex';
+        if (fullNowRow) fullNowRow.style.display = 'none';
+    };
+
+    const updateMidtransAmount = () => {
+        const amount = getSelectedPaymentAmount();
+        midtransAmountSpan.textContent = `Rp ${formatCurrency(amount)}`;
+    };
+
+    const showSuccessModal = () => {
+        successModal.classList.add('show');
+        countdownValue = 5;
+        countdownSpan.textContent = countdownValue;
+
+        // Start countdown
+        countdownInterval = setInterval(() => {
+            countdownValue--;
+            countdownSpan.textContent = countdownValue;
+
+            if (countdownValue <= 0) {
+                clearInterval(countdownInterval);
+                triggerPostSuccessRedirect();
+            }
+        }, 1000);
+    };
+
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const checkPaymentStatus = async (paymentId) => {
+        try {
+            const response = await fetch('{{ route("midtrans.check-status") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                },
+                body: JSON.stringify({
+                    payment_id: paymentId,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                console.log('Payment status:', data.transaction_status);
+                if (data.transaction_status === 'settlement' || data.transaction_status === 'capture') {
+                    midtransStatusInfo.textContent = '✅ Pembayaran berhasil! Pesanan Anda sedang diproses.';
+                    midtransStatusInfo.className = 'payment-status-info settled show';
+                    btnPayMidtrans.disabled = true;
+                    btnPayMidtrans.textContent = 'Pembayaran Berhasil';
+                } else if (data.transaction_status === 'pending') {
+                    midtransStatusInfo.textContent = '⏳ Pembayaran masih menunggu konfirmasi...';
+                    midtransStatusInfo.className = 'payment-status-info show';
+                    btnPayMidtrans.disabled = false;
+                    btnPayMidtrans.textContent = 'Klik Bayar Sekarang';
+                } else {
+                    midtransStatusInfo.textContent = `⚠️ Status transaksi: ${data.transaction_status}`;
+                    midtransStatusInfo.className = 'payment-status-info rejected show';
+                    btnPayMidtrans.disabled = false;
+                    btnPayMidtrans.textContent = 'Klik Bayar Sekarang';
+                }
+
+                return data;
+            }
+
+            return null;
+        } catch (error) {
+            console.error('Error checking status:', error);
+            return null;
         }
     };
 
-    const refreshSubmitState = () => {
-        const isValid = paymentForm.checkValidity();
-        submitBtn.disabled = !isValid;
+    const syncStatusBeforeRedirect = async () => {
+        if (!activePaymentId) {
+            return;
+        }
 
-        if (isValid) {
-            submitHint.textContent = successHintText;
-            submitHint.style.color = '#1c6a47';
-        } else {
-            submitHint.textContent = defaultHintText;
-            submitHint.style.color = '#7a4b13';
+        // Poll briefly so quick modal close/click still syncs latest Midtrans state.
+        for (let attempt = 0; attempt < 5; attempt++) {
+            const statusData = await checkPaymentStatus(activePaymentId);
+            const transactionStatus = statusData?.transaction_status;
+
+            if (transactionStatus === 'settlement' || transactionStatus === 'capture') {
+                return;
+            }
+
+            await wait(1000);
         }
     };
 
-    requiredFields.forEach((field) => {
-        field.addEventListener('input', refreshSubmitState);
-        field.addEventListener('change', refreshSubmitState);
-        field.addEventListener('blur', refreshSubmitState);
-    });
+    const triggerPostSuccessRedirect = async () => {
+        if (redirectInProgress) {
+            return;
+        }
 
-    optionInputs.forEach((option) => {
-        option.addEventListener('change', () => {
-            refreshBreakdown();
-            refreshSubmitState();
+        redirectInProgress = true;
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+        }
+
+        if (successModalButton) {
+            successModalButton.disabled = true;
+            successModalButton.textContent = 'Memeriksa Status...';
+        }
+
+        await syncStatusBeforeRedirect();
+        window.location.href = ordersIndexUrl;
+    };
+
+    const initiateMidtransPayment = async () => {
+        try {
+            const amount = getSelectedPaymentAmount();
+            if (amount <= 0) {
+                alert('Jumlah pembayaran tidak valid');
+                return;
+            }
+
+            btnPayMidtrans.disabled = true;
+            btnPayMidtrans.textContent = 'Sedang memproses...';
+            midtransStatusInfo.classList.remove('show');
+
+            const paymentMethod = isSettlementPayment
+                ? 'settlement'
+                : (paymentOptionInputs.find((input) => input.checked)?.value || 'dp');
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+            console.log('Initiating payment:', {
+                order_id: {{ $order->id }},
+                payment_method: paymentMethod,
+                amount: amount,
+                csrf_token: csrfToken ? 'present' : 'MISSING',
+            });
+
+            const response = await fetch('{{ route("midtrans.initiate") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({
+                    order_id: {{ $order->id }},
+                    payment_method: paymentMethod,
+                }),
+            });
+
+            console.log('Response status:', response.status);
+            const responseText = await response.text();
+            console.log('Response body:', responseText.substring(0, 200));
+
+            const data = JSON.parse(responseText);
+
+            if (!data.success) {
+                throw new Error(data.message || 'Gagal membuat transaksi');
+            }
+
+            if (!window.snap) {
+                throw new Error('Midtrans Snap library belum ter-load. Coba refresh halaman dan ulang lagi.');
+            }
+
+            window.snap.pay(data.snap_token, {
+                onSuccess: (result) => {
+                    console.log('Payment success:', result);
+                    activePaymentId = data.payment_id;
+                    showSuccessModal();
+                    btnPayMidtrans.disabled = true;
+                    btnPayMidtrans.textContent = 'Pembayaran Berhasil';
+                },
+                onPending: (result) => {
+                    console.log('Payment pending:', result);
+                    midtransStatusInfo.textContent = '⏳ Pembayaran sedang diproses. Silahkan tunggu konfirmasi...';
+                    midtransStatusInfo.classList.add('show');
+                    btnPayMidtrans.disabled = false;
+                    btnPayMidtrans.textContent = 'Klik Bayar Sekarang';
+                },
+                onError: (result) => {
+                    console.log('Payment error:', result);
+                    midtransStatusInfo.textContent = '❌ Pembayaran gagal. Silahkan coba lagi.';
+                    midtransStatusInfo.classList.add('show', 'rejected');
+                    btnPayMidtrans.disabled = false;
+                    btnPayMidtrans.textContent = 'Klik Bayar Sekarang';
+                },
+                onClose: () => {
+                    console.log('Payment popup closed');
+                    btnPayMidtrans.disabled = false;
+                    btnPayMidtrans.textContent = 'Klik Bayar Sekarang';
+                },
+            });
+        } catch (error) {
+            console.error('Error:', error);
+            midtransStatusInfo.textContent = `❌ Error: ${error.message}`;
+            midtransStatusInfo.classList.add('show', 'rejected');
+            btnPayMidtrans.disabled = false;
+            btnPayMidtrans.textContent = 'Klik Bayar Sekarang';
+        }
+    };
+
+    paymentOptionInputs.forEach((input) => {
+        input.addEventListener('change', () => {
+            updatePaymentBreakdown();
+            updateMidtransAmount();
         });
     });
 
-    paymentForm.addEventListener('submit', (event) => {
-        if (!paymentForm.checkValidity()) {
-            event.preventDefault();
-            paymentForm.reportValidity();
-            submitHint.textContent = 'Masih ada field wajib yang belum diisi.';
-            submitHint.style.color = '#8f2f2f';
-        }
-    });
+    if (successModalButton) {
+        successModalButton.addEventListener('click', () => {
+            triggerPostSuccessRedirect();
+        });
+    }
 
-    refreshBreakdown();
-    refreshSubmitState();
+    btnPayMidtrans.addEventListener('click', initiateMidtransPayment);
+
+    // Initialize
+    updatePaymentBreakdown();
+    updateMidtransAmount();
 })();
 </script>
 @endsection

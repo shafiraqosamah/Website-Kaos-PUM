@@ -2,93 +2,100 @@
 
 @section('content')
 <style>
-    .management-hero {
-        background: linear-gradient(135deg, #0d2749 0%, #102945 50%, #1a3d5c 100%);
-        border-radius: 16px;
-        padding: clamp(1.5rem, 3vw, 2.2rem);
-        margin-bottom: 2rem;
-        border: 1px solid rgba(198, 166, 71, 0.2);
-        position: relative;
-        overflow: hidden;
+    .management-page {
+        background: #ffffff;
+        border: 1px solid #d9e2ea;
+        border-radius: 14px;
+        padding: 1.5rem 2rem 1.5rem;
     }
 
-    .management-hero::before {
-        content: "";
-        position: absolute;
-        top: -50%;
-        right: -5%;
-        width: 400px;
-        height: 400px;
-        border-radius: 999px;
-        background: radial-gradient(circle, rgba(198, 166, 71, 0.12) 0%, transparent 70%);
-        pointer-events: none;
-    }
-
-    .management-hero-content {
-        position: relative;
-        z-index: 1;
-    }
-
-    .management-hero h1 {
-        font-family: 'Playfair Display', serif;
-        font-size: clamp(1.42rem, 2.3vw, 1.9rem);
-        color: #ffffff;
-        margin: 0 0 0.6rem;
-        font-weight: 700;
-    }
-
-    .management-hero p {
-        color: #c8d6e8;
+    .management-header h1 {
         margin: 0;
-        font-size: clamp(0.8rem, 1vw, 0.88rem);
-        max-width: 700px;
-        line-height: 1.5;
+        font-size: clamp(1.18rem, 1.8vw, 1.4rem);
+        line-height: 1.08;
+        color: #0d2749;
+        font-family: 'Playfair Display', serif;
+    }
+
+    .management-header p {
+        margin: 0.45rem 0 1.2rem;
+        color: #8ca0b7;
+        font-size: 0.82rem;
+        font-weight: 600;
+    }
+
+    .management-alert {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+        border-radius: 12px;
+        border: 1px solid #f3c4b8;
+        background: #fff4ef;
+        padding: 0.72rem 0.95rem;
+        color: #b63b22;
+        font-size: 0.86rem;
+    }
+
+    .management-alert a {
+        color: #b63b22;
+        font-weight: 700;
+        text-decoration: underline;
     }
 
     .metrics-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 1.2rem;
-        margin-top: 2rem;
+        gap: 0.95rem;
     }
 
     .metric-card {
         background: #ffffff;
-        border: 1px solid #dfe6ee;
-        border-radius: 14px;
-        padding: 1.2rem;
-        box-shadow: 0 2px 8px rgba(15, 43, 61, 0.04);
-        transition: all 0.2s;
-        text-align: center;
+        border: 1px solid #d9e2ec;
+        border-radius: 12px;
+        padding: 1rem 1.05rem;
+        border-top: 4px solid #c6d3df;
+        box-shadow: 0 6px 16px rgba(13, 39, 73, 0.05);
     }
 
-    .metric-card:hover {
-        border-color: #c8d6e8;
-        box-shadow: 0 4px 16px rgba(15, 43, 61, 0.08);
-        transform: translateY(-2px);
+    .metric-card.orders {
+        border-top-color: #2c7ebe;
+    }
+
+    .metric-card.pending {
+        border-top-color: #cf3c2c;
+    }
+
+    .metric-card.production {
+        border-top-color: #0c7fb6;
+    }
+
+    .metric-card.completed {
+        border-top-color: #0f8f60;
     }
 
     .metric-label {
-        font-size: 0.72rem;
-        color: #7893ae;
+        color: #8da1b7;
+        font-size: 0.74rem;
         text-transform: uppercase;
-        letter-spacing: 0.03em;
+        letter-spacing: 0.04em;
         font-weight: 700;
-        margin-bottom: 0.6rem;
     }
 
     .metric-value {
+        margin-top: 0.55rem;
         font-family: 'Playfair Display', serif;
-        font-size: clamp(1.4rem, 2vw, 1.85rem);
+        font-size: clamp(1.15rem, 1.55vw, 1.38rem);
+        line-height: 1;
         color: #0d2749;
         font-weight: 700;
-        line-height: 1;
-        margin-bottom: 0.4rem;
     }
 
     .metric-indicator {
-        font-size: 0.68rem;
-        color: #7893ae;
+        margin-top: 0.42rem;
+        color: #7f96ae;
+        font-size: 0.78rem;
         font-weight: 600;
     }
 
@@ -99,39 +106,59 @@
     }
 
     @media (max-width: 720px) {
+        .management-page {
+            padding: 1rem;
+        }
+
         .metrics-grid {
             grid-template-columns: 1fr;
         }
     }
 </style>
 
-<div class="management-hero">
-    <div class="management-hero-content">
-        <h1>Dashboard Owner / Manager</h1>
-        <p>📊 Monitoring realtime lintas modul customer, keuangan, dan produksi. Pantau semua metrik penting dalam satu dashboard.</p>
+<section class="management-page">
+    <div class="management-header">
+        <h1>Dashboard Admin</h1>
+        <p>Overview sistem dan manajemen data</p>
     </div>
-</div>
 
-<div class="metrics-grid">
-    <div class="metric-card">
-        <div class="metric-label">Total Order</div>
-        <div class="metric-value">{{ $summary['total_orders'] }}</div>
-        <div class="metric-indicator">📦 Seluruh Pesanan</div>
+    @if (($pendingOrderVerification ?? 0) > 0)
+        <div class="management-alert">
+            <span>🔔</span>
+            <span>Ada <strong>{{ $pendingOrderVerification }}</strong> pesanan yang menunggu verifikasi admin.</span>
+            <a href="{{ route('reports.orders') }}">Verifikasi Sekarang →</a>
+        </div>
+    @endif
+
+    @if (($productionWaitingVerification ?? 0) > 0)
+        <div class="management-alert" style="border-color: #fbc4a8; background: #fffbf7; color: #c87f2d;">
+            <span>✓</span>
+            <span>Ada <strong>{{ $productionWaitingVerification }}</strong> produksi yang menunggu verifikasi hasil.</span>
+            <a href="{{ route('production.index') }}" style="color: #c87f2d;">Verifikasi Sekarang →</a>
+        </div>
+    @endif
+
+    <div class="metrics-grid">
+        <div class="metric-card orders">
+            <div class="metric-label">Total Order</div>
+            <div class="metric-value">{{ $summary['total_orders'] }}</div>
+            <div class="metric-indicator">Seluruh pesanan</div>
+        </div>
+        <div class="metric-card pending">
+            <div class="metric-label">Menunggu Verifikasi</div>
+            <div class="metric-value">{{ $summary['pending_verification'] }}</div>
+            <div class="metric-indicator">Verifikasi pesanan pelanggan</div>
+        </div>
+        <div class="metric-card production">
+            <div class="metric-label">Sedang Produksi</div>
+            <div class="metric-value">{{ $summary['in_production'] }}</div>
+            <div class="metric-indicator">Dalam Pengerjaan</div>
+        </div>
+        <div class="metric-card completed">
+            <div class="metric-label">Selesai</div>
+            <div class="metric-value">{{ $summary['completed'] }}</div>
+            <div class="metric-indicator">Order selesai</div>
+        </div>
     </div>
-    <div class="metric-card">
-        <div class="metric-label">Menunggu Verifikasi</div>
-        <div class="metric-value" style="color: #d95f18;">{{ $summary['pending_verification'] }}</div>
-        <div class="metric-indicator">⏳ Pembayaran Pending</div>
-    </div>
-    <div class="metric-card">
-        <div class="metric-label">Sedang Produksi</div>
-        <div class="metric-value" style="color: #0f7b8f;">{{ $summary['in_production'] }}</div>
-        <div class="metric-indicator">🔧 Dalam Pipeline</div>
-    </div>
-    <div class="metric-card">
-        <div class="metric-label">Selesai</div>
-        <div class="metric-value" style="color: #0f8f60;">{{ $summary['completed'] }}</div>
-        <div class="metric-indicator">✓ Order Selesai</div>
-    </div>
-</div>
+</section>
 @endsection

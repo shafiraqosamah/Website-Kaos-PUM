@@ -149,7 +149,7 @@
             @endif
 
             <div class="catalog-actions">
-                <a class="btn btn-brand" href="{{ auth()->check() ? route('customer.orders.create', $product['preset'] ?? []) : route('register') }}">Pesan</a>
+                <a class="btn btn-brand" href="{{ auth()->check() ? (auth()->user()->hasRole('customer') ? route('customer.orders.create', $product['preset'] ?? []) : route('dashboard')) : route('register') }}">Pesan</a>
                 <a class="btn btn-alt" href="{{ route('home') }}">Kembali ke Katalog</a>
             </div>
         </div>

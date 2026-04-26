@@ -47,75 +47,81 @@
 @endphp
 
 <style>
-    .verification-header {
-        background: linear-gradient(135deg, #0d2749 0%, #102945 50%, #1a3d5c 100%);
-        border-radius: 16px;
-        padding: clamp(1.5rem, 3vw, 2.2rem);
-        margin-bottom: 1.8rem;
-        border: 1px solid rgba(198, 166, 71, 0.2);
-        position: relative;
-        overflow: hidden;
+    .finance-page {
+        background: #ffffff;
+        border: 1px solid #d9e2ea;
+        border-radius: 14px;
+        padding: 1.5rem 2rem 1.5rem;
     }
 
-    .verification-header::before {
-        content: "";
-        position: absolute;
-        top: -50%;
-        right: -5%;
-        width: 400px;
-        height: 400px;
-        border-radius: 999px;
-        background: radial-gradient(circle, rgba(198, 166, 71, 0.12) 0%, transparent 70%);
-        pointer-events: none;
+    .finance-header {
+        margin-bottom: 1.2rem;
     }
 
-    .verification-header-content {
-        position: relative;
-        z-index: 1;
-    }
-
-    .verification-header h1 {
+    .finance-header h1 {
+        margin: 0 0 0.35rem;
+        font-size: clamp(1.18rem, 1.8vw, 1.4rem);
+        line-height: 1.08;
+        color: #0d2749;
         font-family: 'Playfair Display', serif;
-        font-size: clamp(1.34rem, 2.1vw, 1.75rem);
-        color: #ffffff;
-        margin: 0 0 0.4rem;
         font-weight: 700;
     }
 
-    .verification-header p {
-        color: #c8d6e8;
+    .finance-header p {
         margin: 0;
+        color: #8ca0b7;
         font-size: 0.82rem;
+        font-weight: 600;
     }
 
     .stats-row {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.95rem;
-        margin-top: 1.2rem;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 
     .stat-item {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(198, 166, 71, 0.2);
+        background: #ffffff;
+        border: 1px solid #d9e2ec;
         border-radius: 12px;
-        padding: 0.8rem 1rem;
+        border-top: 4px solid #c6d3df;
+        padding: 1rem 1.05rem;
+        box-shadow: 0 1px 3px rgba(15, 43, 61, 0.03);
+        transition: all 0.2s;
+    }
+
+    .stat-item:hover {
+        border-color: #c8d6e8;
+        box-shadow: 0 3px 8px rgba(15, 43, 61, 0.06);
+    }
+
+    .stat-item.dp {
+        border-top-color: #2c7ebe;
+    }
+
+    .stat-item.settlement {
+        border-top-color: #d97706;
+    }
+
+    .stat-item.full {
+        border-top-color: #0f8f60;
     }
 
     .stat-item .label {
-        font-size: 0.7rem;
-        color: #a0b8d0;
+        color: #8da1b7;
+        font-size: 0.74rem;
         text-transform: uppercase;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.01em;
         font-weight: 700;
-        margin-bottom: 0.3rem;
+        margin-bottom: 0.5rem;
     }
 
     .stat-item .value {
         font-family: 'Playfair Display', serif;
-        font-size: 1.36rem;
-        color: #c6a647;
+        font-size: clamp(1.15rem, 1.55vw, 1.38rem);
+        line-height: 1;
+        color: #0d2749;
         font-weight: 700;
     }
 
@@ -215,8 +221,6 @@
 
     .finance-table tbody tr:last-child td {
         border-bottom: none;
-    }
-
     }
 
     .action-form {
@@ -384,7 +388,7 @@
         color: #1f2d3d;
     }
 
-    .proof-preview {
+    .transaction-preview {
         margin-top: 0.95rem;
         border: 1px solid #dbe6f0;
         border-radius: 12px;
@@ -397,7 +401,7 @@
         flex-wrap: wrap;
     }
 
-    .proof-preview strong {
+    .transaction-preview strong {
         color: #0d2749;
     }
 
@@ -482,6 +486,10 @@
     }
 
     @media (max-width: 768px) {
+        .finance-page {
+            padding: 1rem;
+        }
+
         .stats-row {
             grid-template-columns: 1fr;
         }
@@ -505,26 +513,26 @@
     }
 </style>
 
-<div class="verification-header">
-    <div class="verification-header-content">
-        <h1>Modul Verifikasi Pembayaran</h1>
-        <p>Kelola dan verifikasi semua pembayaran DP, Pelunasan, atau Lunas Awal dari pelanggan</p>
-        <div class="stats-row">
-            <div class="stat-item">
-                <div class="label">Pending DP</div>
-                <div class="value">{{ $pendingDp->count() }}</div>
-            </div>
-            <div class="stat-item">
-                <div class="label">Pending Pelunasan</div>
-                <div class="value">{{ $pendingSettlement->count() }}</div>
-            </div>
-            <div class="stat-item">
-                <div class="label">Pending Lunas Awal</div>
-                <div class="value">{{ $pendingFull->count() }}</div>
-            </div>
+<section class="finance-page">
+    <div class="finance-header">
+        <h1>Data Pembayaran</h1>
+        <p>Pantau status transaksi pembayaran pelanggan yang diproses otomatis melalui Midtrans.</p>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-item dp">
+            <div class="label">Pending DP</div>
+            <div class="value">{{ $pendingDp->count() }}</div>
+        </div>
+        <div class="stat-item settlement">
+            <div class="label">Pending Pelunasan</div>
+            <div class="value">{{ $pendingSettlement->count() }}</div>
+        </div>
+        <div class="stat-item full">
+            <div class="label">Pending Lunas Awal</div>
+            <div class="value">{{ $pendingFull->count() }}</div>
         </div>
     </div>
-</div>
 
 @if($pendingPayments->isNotEmpty())
     <div class="section-card">
@@ -541,12 +549,9 @@
                         <th>Harga @</th>
                         <th>Total Order</th>
                         <th>Metode</th>
-                        <th>Pengirim</th>
-                        <th>Bank Tujuan</th>
-                        <th>Atas Nama</th>
+                        <th>Status Midtrans</th>
                         <th>Nominal Bayar</th>
                         <th>Harus Bayar</th>
-                        <th>Bukti</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
@@ -563,28 +568,16 @@
                             <td>Rp {{ number_format((float) $payment->order->unit_price, 0, ',', '.') }}</td>
                             <td>Rp {{ number_format((float) $payment->order->subtotal, 0, ',', '.') }}</td>
                             <td><span class="pay-type {{ $paymentTypeClass($payment->method) }}">{{ $paymentTypeLabel($payment->method) }}</span></td>
-                            <td>{{ $payment->sender_bank_name }}</td>
-                            <td>
-                                @php($bank = $payment->destinationBankDetails())
-                                <strong>{{ $bank['label'] ?? '-' }}</strong><br>
-                                <span style="font-size: 0.8rem; color: #7893ae;">{{ $bank['account_number'] ?? '-' }}</span>
-                            </td>
-                            <td>{{ $payment->sender_account_name }}</td>
+                            <td>{{ $payment->midtrans_status ?: '-' }}</td>
                             <td>Rp {{ number_format($payment->amount, 0, ',', '.') }}</td>
                             <td><strong>Rp {{ number_format($expected, 0, ',', '.') }}</strong></td>
                             <td>
-                                <div class="action-links">
-                                    @if ($payment->proof_path)
-                                        <a class="btn-link" href="{{ route('finance.payments.proof', $payment) }}" target="_blank">Lihat Bukti</a>
-                                    @endif
-                                </div>
-                            </td>
-                            <td>
+                                @php($isMidtransOnly = (bool) $payment->midtrans_order_id)
                                 <button
                                     type="button"
                                     class="btn-detail js-open-detail"
-                                    data-verify-url="{{ route('finance.verify', $payment) }}"
-                                    data-proof-url="{{ $payment->proof_path ? route('finance.payments.proof', $payment) : '' }}"
+                                    data-verify-url="{{ $isMidtransOnly ? '' : route('finance.verify', $payment) }}"
+                                    data-invoice-url="{{ $payment->invoice_number ? route('finance.invoices.show', $payment) : '' }}"
                                     data-order-code="{{ $payment->order->order_code }}"
                                     data-customer="{{ $payment->order->user->name }}"
                                     data-product="{{ $payment->order->product_name ?: '-' }}"
@@ -593,12 +586,11 @@
                                     data-total="Rp {{ number_format((float) $payment->order->subtotal, 0, ',', '.') }}"
                                     data-dp="Rp {{ number_format((float) ($payment->order->dp_amount ?? 0), 0, ',', '.') }}"
                                     data-sisa="Rp {{ number_format((float) ($payment->order->remaining_amount ?? 0), 0, ',', '.') }}"
-                                    data-bank="{{ $bank['label'] ?? '-' }}"
-                                    data-bank-account="{{ $bank['account_number'] ?? '-' }}"
-                                    data-sender-bank="{{ $payment->sender_bank_name }}"
-                                    data-sender-name="{{ $payment->sender_account_name }}"
-                                    data-proof-name="{{ $payment->proof_path ? basename($payment->proof_path) : '-' }}"
-                                    data-readonly="0"
+                                    data-midtrans-status="{{ $payment->midtrans_status ?: '-' }}"
+                                    data-midtrans-order="{{ $payment->midtrans_order_id ?: '-' }}"
+                                    data-midtrans-transaction="{{ $payment->midtrans_transaction_id ?: '-' }}"
+                                    data-midtrans-channel="{{ $payment->midtrans_payment_type ?: '-' }}"
+                                    data-readonly="{{ $isMidtransOnly ? '1' : '0' }}"
                                 >
                                     Detail
                                 </button>
@@ -612,7 +604,7 @@
 @endif
 
 <div class="section-card">
-    <h3>✓ Invoice Verifikasi Terbit</h3>
+    <h3>Data Pembayaran Pelanggan</h3>
     <p>Pembayaran yang telah berhasil diverifikasi dan invoice telah diterbitkan</p>
     
     @if($verifiedPayments->isEmpty())
@@ -636,7 +628,6 @@
                 </thead>
                 <tbody>
                     @foreach($verifiedPaymentsSorted as $payment)
-                        @php($bank = $payment->destinationBankDetails())
                         <tr>
                             <td><strong>{{ $payment->invoice_number ?? '-' }}</strong></td>
                             <td>{{ $payment->order->order_code }}</td>
@@ -646,15 +637,11 @@
                             <td>{{ $payment->verified_at?->format('d/m/Y H:i') ?? '-' }}</td>
                             <td>
                                 <div class="action-links">
-                                    @if($payment->proof_path)
-                                        <a class="btn-link" href="{{ route('finance.payments.proof', $payment) }}" target="_blank">Lihat Bukti</a>
-                                    @endif
                                     <a class="btn-link" href="{{ route('finance.invoices.show', $payment) }}" target="_blank">Download Invoice</a>
                                     <button
                                         type="button"
                                         class="btn-detail js-open-detail"
                                         data-verify-url=""
-                                        data-proof-url="{{ $payment->proof_path ? route('finance.payments.proof', $payment) : '' }}"
                                         data-invoice-url="{{ route('finance.invoices.show', $payment) }}"
                                         data-order-code="{{ $payment->order->order_code }}"
                                         data-customer="{{ $payment->order->user->name }}"
@@ -664,11 +651,10 @@
                                         data-total="Rp {{ number_format((float) $payment->order->subtotal, 0, ',', '.') }}"
                                         data-dp="Rp {{ number_format((float) ($payment->order->dp_amount ?? 0), 0, ',', '.') }}"
                                         data-sisa="Rp {{ number_format((float) ($payment->order->remaining_amount ?? 0), 0, ',', '.') }}"
-                                        data-bank="{{ $bank['label'] ?? '-' }}"
-                                        data-bank-account="{{ $bank['account_number'] ?? '-' }}"
-                                        data-sender-bank="{{ $payment->sender_bank_name }}"
-                                        data-sender-name="{{ $payment->sender_account_name }}"
-                                        data-proof-name="{{ $payment->proof_path ? basename($payment->proof_path) : '-' }}"
+                                        data-midtrans-status="{{ $payment->midtrans_status ?: '-' }}"
+                                        data-midtrans-order="{{ $payment->midtrans_order_id ?: '-' }}"
+                                        data-midtrans-transaction="{{ $payment->midtrans_transaction_id ?: '-' }}"
+                                        data-midtrans-channel="{{ $payment->midtrans_payment_type ?: '-' }}"
                                         data-readonly="1"
                                     >
                                         Detail
@@ -683,16 +669,11 @@
     @endif
 </div>
 
-<div class="section-card">
-    <h3>✕ Gagal Pembayaran</h3>
-    <p>Bukti bayar yang ditolak oleh tim keuangan ditampilkan di sini untuk ditinjau ulang</p>
+@if($rejectedPayments->isNotEmpty())
+    <div class="section-card">
+        <h3>✕ Gagal Pembayaran</h3>
+        <p>Bukti bayar yang ditolak oleh tim keuangan ditampilkan di sini untuk ditinjau ulang</p>
 
-    @if($rejectedPayments->isEmpty())
-        <div class="empty-state">
-            <h4>Belum Ada Penolakan</h4>
-            <p>Data pembayaran yang ditolak akan muncul pada bagian ini.</p>
-        </div>
-    @else
         <div style="overflow-x: auto;">
             <table class="finance-table">
                 <thead>
@@ -708,7 +689,6 @@
                 </thead>
                 <tbody>
                     @foreach($rejectedPayments as $payment)
-                        @php($bank = $payment->destinationBankDetails())
                         <tr>
                             <td><strong>{{ $payment->order->order_code }}</strong></td>
                             <td>{{ $payment->order->user->name }}</td>
@@ -718,14 +698,10 @@
                             <td>{{ $payment->notes ?: '-' }}</td>
                             <td>
                                 <div class="action-links">
-                                    @if($payment->proof_path)
-                                        <a class="btn-link" href="{{ route('finance.payments.proof', $payment) }}" target="_blank">Lihat Bukti</a>
-                                    @endif
                                     <button
                                         type="button"
                                         class="btn-detail js-open-detail"
                                         data-verify-url=""
-                                        data-proof-url="{{ $payment->proof_path ? route('finance.payments.proof', $payment) : '' }}"
                                         data-invoice-url=""
                                         data-order-code="{{ $payment->order->order_code }}"
                                         data-customer="{{ $payment->order->user->name }}"
@@ -735,11 +711,10 @@
                                         data-total="Rp {{ number_format((float) $payment->order->subtotal, 0, ',', '.') }}"
                                         data-dp="Rp {{ number_format((float) ($payment->order->dp_amount ?? 0), 0, ',', '.') }}"
                                         data-sisa="Rp {{ number_format((float) ($payment->order->remaining_amount ?? 0), 0, ',', '.') }}"
-                                        data-bank="{{ $bank['label'] ?? '-' }}"
-                                        data-bank-account="{{ $bank['account_number'] ?? '-' }}"
-                                        data-sender-bank="{{ $payment->sender_bank_name }}"
-                                        data-sender-name="{{ $payment->sender_account_name }}"
-                                        data-proof-name="{{ $payment->proof_path ? basename($payment->proof_path) : '-' }}"
+                                        data-midtrans-status="{{ $payment->midtrans_status ?: '-' }}"
+                                        data-midtrans-order="{{ $payment->midtrans_order_id ?: '-' }}"
+                                        data-midtrans-transaction="{{ $payment->midtrans_transaction_id ?: '-' }}"
+                                        data-midtrans-channel="{{ $payment->midtrans_payment_type ?: '-' }}"
                                         data-readonly="1"
                                     >
                                         Detail
@@ -751,8 +726,10 @@
                 </tbody>
             </table>
         </div>
-    @endif
-</div>
+    </div>
+@endif
+
+</section>
 
 <div id="financeDetailModal" class="detail-modal" aria-hidden="true">
     <div class="detail-modal-card" role="dialog" aria-modal="true" aria-label="Detail Pesanan Verifikasi">
@@ -769,18 +746,18 @@
             <p><strong>Total:</strong> <span id="modalTotal">-</span></p>
             <p><strong>DP:</strong> <span id="modalDp">-</span></p>
             <p><strong>Sisa:</strong> <span id="modalSisa">-</span></p>
-            <p><strong>Bank Pengirim:</strong> <span id="modalSenderBank">-</span></p>
-            <p><strong>Bank Tujuan:</strong> <span id="modalBank">-</span> (<span id="modalBankAccount">-</span>)</p>
-            <p><strong>Atas Nama:</strong> <span id="modalSenderName">-</span></p>
+            <p><strong>Status Midtrans:</strong> <span id="modalMidtransStatus">-</span></p>
+            <p><strong>Kanal Pembayaran:</strong> <span id="modalMidtransChannel">-</span></p>
+            <p><strong>Order ID Midtrans:</strong> <span id="modalMidtransOrder">-</span></p>
+            <p><strong>Transaction ID:</strong> <span id="modalMidtransTransaction">-</span></p>
         </div>
 
-        <div class="proof-preview">
+        <div class="transaction-preview">
             <div>
-                <strong>Preview Bukti Transfer</strong><br>
-                <span id="modalProofName">-</span>
+                <strong>Ringkasan Transaksi</strong><br>
+                <span>Data transaksi disinkronkan otomatis dari Midtrans.</span>
             </div>
             <div class="action-links">
-                <a id="modalProofLink" class="btn-link" href="#" target="_blank" style="display:none;">Lihat Bukti Bayar</a>
                 <a id="modalInvoiceLink" class="btn-link" href="#" target="_blank" style="display:none;">Lihat Invoice</a>
             </div>
         </div>
@@ -818,7 +795,6 @@
         }
 
         const form = document.getElementById('modalVerifyForm');
-        const proofLink = document.getElementById('modalProofLink');
         const invoiceLink = document.getElementById('modalInvoiceLink');
         const closeBtn = document.getElementById('modalCloseBtn');
         const closeReadonlyBtn = document.getElementById('modalCloseReadonlyBtn');
@@ -843,19 +819,10 @@
                 setText('modalTotal', data.total);
                 setText('modalDp', data.dp);
                 setText('modalSisa', data.sisa);
-                setText('modalBank', data.bank);
-                setText('modalBankAccount', data.bankAccount);
-                setText('modalSenderBank', data.senderBank);
-                setText('modalSenderName', data.senderName);
-                setText('modalProofName', data.proofName);
-
-                if (data.proofUrl) {
-                    proofLink.href = data.proofUrl;
-                    proofLink.style.display = 'inline';
-                } else {
-                    proofLink.removeAttribute('href');
-                    proofLink.style.display = 'none';
-                }
+                setText('modalMidtransStatus', data.midtransStatus);
+                setText('modalMidtransChannel', data.midtransChannel);
+                setText('modalMidtransOrder', data.midtransOrder);
+                setText('modalMidtransTransaction', data.midtransTransaction);
 
                 if (data.invoiceUrl) {
                     invoiceLink.href = data.invoiceUrl;

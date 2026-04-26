@@ -158,6 +158,7 @@
             <div><strong>Tanggal</strong> {{ ($payment->verified_at ?? now())->translatedFormat('d F Y') }}</div>
             <div><strong>Email</strong> {{ $order->user->email }}</div>
             <div><strong>Status</strong> TERVERIFIKASI</div>
+            <div><strong>Pay Via</strong> {{ $payViaLabel }}</div>
         </div>
     </div>
 
@@ -200,10 +201,13 @@
     </table>
 
     <div class="bank-box">
-        <p style="margin-bottom:8px;"><strong>Pembayaran ditransfer ke rekening:</strong></p>
-        @php($destinationBank = $payment->destinationBankDetails())
-        <div>{{ $destinationBank['label'] ?? '-' }} &nbsp;&nbsp; {{ $destinationBank['account_number'] ?? '-' }} &nbsp;&nbsp; a.n {{ $destinationBank['account_name'] ?? '-' }}</div>
-        <div style="margin-top:8px;" class="muted">Transfer dari {{ $payment->sender_bank_name }} a.n {{ $payment->sender_account_name }}</div>
+        <p style="margin-bottom:8px;"><strong>Detail Pembayaran Midtrans:</strong></p>
+        <div>Pay Via: {{ $payViaLabel }}</div>
+        @if (!empty($payViaDetail))
+            <div class="muted" style="margin-top:6px;">{{ $payViaDetail }}</div>
+        @endif
+        <div class="muted" style="margin-top:6px;">Transaction ID: {{ $payment->midtrans_transaction_id ?? '-' }}</div>
+        <div class="muted" style="margin-top:6px;">Order ID Midtrans: {{ $payment->midtrans_order_id ?? '-' }}</div>
         @if ($payment->notes)
             <div style="margin-top:8px;" class="muted">Keterangan: {!! nl2br(e($payment->notes)) !!}</div>
         @endif

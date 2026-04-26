@@ -1,11 +1,14 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AdminMaterialController;
+use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\CustomerOrderController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\MidtransController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\ReportController;
 use App\Models\User;
@@ -23,6 +26,15 @@ Route::middleware('guest')->group(function (): void {
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
+// Midtrans Payment Routes
+Route::post('/midtrans/notification', [MidtransController::class, 'notification'])->name('midtrans.notification');
+
+Route::middleware('auth')->group(function (): void {
+    Route::post('/midtrans/initiate', [MidtransController::class, 'initiatePayment'])->name('midtrans.initiate');
+    Route::post('/midtrans/redirect', [MidtransController::class, 'createRedirectPayment'])->name('midtrans.redirect');
+    Route::post('/midtrans/check-status', [MidtransController::class, 'checkStatus'])->name('midtrans.check-status');
+});
+
 Route::middleware('auth')->group(function (): void {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -31,6 +43,7 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/customer/orders/create', [CustomerOrderController::class, 'create'])->name('customer.orders.create');
         Route::post('/customer/orders', [CustomerOrderController::class, 'store'])->name('customer.orders.store');
         Route::get('/customer/orders/{order}', [CustomerOrderController::class, 'show'])->name('customer.orders.show');
+        Route::post('/customer/orders/{order}/revision/approve', [CustomerOrderController::class, 'approveRevision'])->name('customer.orders.revision.approve');
         Route::get('/customer/orders/{order}/payments/{payment}/proof', [CustomerOrderController::class, 'viewPaymentProof'])->name('customer.orders.payments.proof');
         Route::get('/customer/orders/{order}/payments/{payment}', [CustomerOrderController::class, 'editPayment'])->name('customer.orders.payments.edit');
         Route::post('/customer/orders/{order}/payments/{payment}', [CustomerOrderController::class, 'updatePayment'])->name('customer.orders.payments.update');
@@ -52,23 +65,44 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/production/orders/{order}/steps/{step}', [ProductionController::class, 'updateStep'])->name('production.step.update');
     });
 
+    Route::middleware('role:' . User::ROLE_ADMIN)->group(function (): void {
+        Route::post('/production/orders/{order}/verify-final', [ProductionController::class, 'verifyFinalResult'])->name('production.verify-final');
+        Route::post('/production/orders/{order}/pickup-status', [ProductionController::class, 'updatePickupStatus'])->name('production.pickup-status');
+    });
+
     Route::middleware('role:' . User::ROLE_ADMIN . ',' . User::ROLE_FINANCE . ',' . User::ROLE_PRODUCTION . ',' . User::ROLE_MANAGER . ',' . User::ROLE_OWNER)->group(function (): void {
         Route::get('/reports/monthly', [ReportController::class, 'monthly'])->name('reports.monthly');
     });
 
-    Route::middleware('role:' . User::ROLE_ADMIN . ',' . User::ROLE_FINANCE . ',' . User::ROLE_MANAGER . ',' . User::ROLE_OWNER)->group(function (): void {
+    Route::middleware('role:' . User::ROLE_ADMIN . ',' . User::ROLE_FINANCE)->group(function (): void {
         Route::get('/reports/orders-balance', [ReportController::class, 'orders'])->name('reports.orders');
+        Route::get('/reports/orders-balance/{order}', [ReportController::class, 'showOrder'])->name('reports.orders.show');
+        Route::post('/reports/orders-balance/{order}/verify', [ReportController::class, 'verifyOrder'])->name('reports.orders.verify');
+        Route::post('/reports/orders-balance/{order}/revision', [ReportController::class, 'requestRevision'])->name('reports.orders.revision');
     });
 
-    Route::middleware('role:' . User::ROLE_FINANCE . ',' . User::ROLE_MANAGER . ',' . User::ROLE_OWNER)->group(function (): void {
+    Route::middleware('role:' . User::ROLE_ADMIN . ',' . User::ROLE_FINANCE . ',' . User::ROLE_MANAGER . ',' . User::ROLE_OWNER)->group(function (): void {
         Route::get('/reports/finance-ledger', [ReportController::class, 'finance'])->name('reports.finance');
     });
 
-    Route::middleware('role:' . User::ROLE_PRODUCTION . ',' . User::ROLE_MANAGER . ',' . User::ROLE_OWNER)->group(function (): void {
+    Route::middleware('role:' . User::ROLE_ADMIN . ',' . User::ROLE_PRODUCTION . ',' . User::ROLE_MANAGER . ',' . User::ROLE_OWNER)->group(function (): void {
         Route::get('/reports/production-monthly', [ReportController::class, 'production'])->name('reports.production');
     });
 
     Route::middleware('role:' . User::ROLE_MANAGER . ',' . User::ROLE_OWNER)->group(function (): void {
         Route::get('/reports/executive', [ReportController::class, 'executive'])->name('reports.executive');
+    });
+
+    Route::middleware('role:' . User::ROLE_ADMIN)->group(function (): void {
+        Route::get('/admin/users', [AdminUserController::class, 'index'])->name('admin.users.index');
+        Route::post('/admin/users', [AdminUserController::class, 'store'])->name('admin.users.store');
+        Route::get('/admin/users/{user}', [AdminUserController::class, 'show'])->name('admin.users.show');
+
+        Route::get('/admin/materials', [AdminMaterialController::class, 'index'])->name('admin.materials.index');
+        Route::get('/admin/materials/{material}/edit', [AdminMaterialController::class, 'edit'])->name('admin.materials.edit');
+        Route::post('/admin/materials', [AdminMaterialController::class, 'store'])->name('admin.materials.store');
+        Route::put('/admin/materials/{material}', [AdminMaterialController::class, 'update'])->name('admin.materials.update');
+        Route::patch('/admin/materials/{material}/toggle', [AdminMaterialController::class, 'toggle'])->name('admin.materials.toggle');
+        Route::delete('/admin/materials/{material}', [AdminMaterialController::class, 'destroy'])->name('admin.materials.destroy');
     });
 });

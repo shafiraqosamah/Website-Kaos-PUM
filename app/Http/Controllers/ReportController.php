@@ -6,12 +6,31 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ReportController extends Controller
 {
+    private const MATERIALS = [
+        'Drill',
+        'Taipan',
+        'Tropical',
+        'Oxford',
+        'Twill',
+        'Ribstop',
+        'Lacoste Pique',
+        'Cotton Combed 30s',
+        'Cotton Combed 20s',
+        'Drifit',
+        'Lainnya',
+    ];
+
+    private const TYPES = ['Sablon Manual', 'DTF (Direct to Film)', 'Bordiran', 'Printing'];
+    private const MODELS = ['Polo Shirt', 'Kaos Oblong', 'Kaos Panjang', 'Raglan', 'T-Shirt'];
+    private const SLEEVES = ['Lengan Pendek', 'Lengan Panjang'];
+
     public function monthly(Request $request)
     {
         $user = $request->user();
@@ -34,9 +53,103 @@ class ReportController extends Controller
     public function orders(Request $request): View
     {
         $period = $this->resolveMonthPeriod($request);
-        $orderData = $this->buildOrderBalanceData($period['start'], $period['end']);
 
-        return view('reports.orders-balance', array_merge($period, $orderData));
+        $ordersQuery = Order::query()
+            ->with(['user', 'sizes', 'payments'])
+            ->whereBetween('created_at', [$period['start'], $period['end']])
+            ->latest();
+
+        $orderCount = (clone $ordersQuery)->count();
+        $verifiedCount = (clone $ordersQuery)
+            ->where('admin_verification_status', 'verified')
+            ->count();
+        $revisionRequestedCount = (clone $ordersQuery)
+            ->where('admin_verification_status', 'revision_requested')
+            ->count();
+
+        $orders = $ordersQuery->paginate(10)->withQueryString();
+
+        return view('reports.orders-balance', array_merge($period, [
+            'orders' => $orders,
+            'orderCount' => $orderCount,
+            'verifiedCount' => $verifiedCount,
+            'revisionRequestedCount' => $revisionRequestedCount,
+        ]));
+    }
+
+    public function showOrder(Request $request, Order $order): View
+    {
+        abort_unless($request->user()->hasRole(User::ROLE_ADMIN, User::ROLE_FINANCE), 403);
+
+        $order->load(['user', 'sizes', 'payments']);
+
+        return view('reports.orders-detail', [
+            'order' => $order,
+            'materials' => self::MATERIALS,
+            'types' => self::TYPES,
+            'models' => self::MODELS,
+            'sleeves' => self::SLEEVES,
+        ]);
+    }
+
+    public function verifyOrder(Request $request, Order $order): RedirectResponse
+    {
+        abort_unless($request->user()->hasRole(User::ROLE_ADMIN, User::ROLE_FINANCE), 403);
+
+        $validated = $request->validate([
+            'admin_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $order->update([
+            'admin_verification_status' => 'verified',
+            'admin_verification_note' => $validated['admin_note'] ?? null,
+            'admin_verified_by' => $request->user()->id,
+            'admin_verified_at' => now(),
+        ]);
+
+        $month = (string) $request->input('month', '');
+
+        return redirect()
+            ->route('reports.orders', array_filter(['month' => $month]))
+            ->with('success', 'Pesanan berhasil diverifikasi. Customer dapat melanjutkan pembayaran.');
+    }
+
+    public function requestRevision(Request $request, Order $order): RedirectResponse
+    {
+        abort_unless($request->user()->hasRole(User::ROLE_ADMIN, User::ROLE_FINANCE), 403);
+
+        $validated = $request->validate([
+            'customer_name' => ['required', 'string', 'max:150'],
+            'fabric' => ['required', 'string', 'max:120'],
+            'production_type' => ['required', 'string', 'max:120'],
+            'product_model' => ['required', 'string', 'max:120'],
+            'sleeve_type' => ['required', 'string', 'max:80'],
+            'dominant_color' => ['required', 'string', 'max:80'],
+            'estimated_finish_date' => ['required', 'date', 'after_or_equal:today'],
+            'design_notes' => ['nullable', 'string', 'max:1000'],
+            'admin_revision_note' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $order->update([
+            'customer_name' => $validated['customer_name'],
+            'fabric' => $validated['fabric'],
+            'production_type' => $validated['production_type'],
+            'product_model' => $validated['product_model'],
+            'sleeve_type' => $validated['sleeve_type'],
+            'dominant_color' => $validated['dominant_color'],
+            'estimated_finish_date' => $validated['estimated_finish_date'],
+            'design_notes' => $validated['design_notes'] ?? $order->design_notes,
+            'admin_verification_status' => 'revision_requested',
+            'admin_verification_note' => $validated['admin_revision_note'],
+            'admin_verified_by' => $request->user()->id,
+            'admin_verified_at' => now(),
+        ]);
+
+        $month = (string) $request->input('month', '');
+
+        return redirect()
+            ->route('reports.orders', array_filter(['month' => $month]))
+            ->with('success', 'Pesanan diajukan kembali ke customer beserta catatan revisi.');
     }
 
     public function finance(Request $request): View
@@ -317,10 +430,18 @@ class ReportController extends Controller
         });
 
         $productionByType = $orders
-            ->groupBy(fn (Order $order): string => (string) ($order->production_type ?: '-'))
+            ->groupBy(static function (Order $order): string {
+                $productionType = (string) ($order->production_type ?: '-');
+                $productName = (string) ($order->product_model ?: $order->product_name ?: '-');
+
+                return $productionType . '||' . $productName;
+            })
             ->map(function ($group): array {
+                $firstOrder = $group->first();
+
                 return [
-                    'production_type' => (string) $group->first()->production_type ?: '-',
+                    'production_type' => (string) ($firstOrder->production_type ?: '-'),
+                    'product_model' => (string) ($firstOrder->product_model ?: $firstOrder->product_name ?: '-'),
                     'total_orders' => $group->count(),
                     'total_pcs' => (int) $group->sum('total_pcs'),
                 ];

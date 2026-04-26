@@ -5,7 +5,9 @@
     $statusClass = function (string $status): string {
         return match ($status) {
             'pending', 'pending_verification', 'submitted' => 'status-warning',
-            'verified', 'verified_payment', 'verified_dp', 'fully_paid', 'completed', 'done' => 'status-success',
+            'admin_verified_waiting_payment' => 'status-success',
+            'production_done_waiting_admin' => 'status-info',
+            'verified', 'verified_payment', 'verified_dp', 'fully_paid', 'ready_for_pickup', 'completed', 'done' => 'status-success',
             'rejected' => 'status-danger',
             'in_production', 'in_progress' => 'status-info',
             'finishing_waiting_settlement' => 'status-accent',
@@ -15,23 +17,34 @@
 
     $statusLabel = function (string $status): string {
         return match ($status) {
-            'submitted', 'pending_verification' => 'Menunggu Verifikasi',
+            'submitted' => 'Menunggu Verifikasi Admin',
+            'admin_verified_waiting_payment' => 'Terverifikasi',
+            'production_done_waiting_admin' => 'Selesai Produksi',
             'verified_payment', 'verified_dp' => 'Menunggu Produksi',
             'in_production', 'in_progress' => 'Sedang Proses',
             'finishing_waiting_settlement' => 'Menunggu Pelunasan',
-            'completed', 'done' => 'Selesai',
+            'ready_for_pickup' => 'Pesanan Siap Ambil',
+            'completed', 'done' => 'Pesanan Selesai',
             'rejected' => 'Rejected',
             default => ucfirst(str_replace('_', ' ', $status)),
         };
     };
 
     $latestPayment = $order->payments->sortByDesc('id')->first();
-    $statusForDisplay = ($latestPayment?->status === 'rejected') ? 'rejected' : $order->order_status;
+    $statusForDisplay = ($latestPayment?->status === 'rejected')
+        ? 'rejected'
+        : (($order->order_status === 'submitted' && (string) ($order->admin_verification_status ?? 'pending') === 'verified')
+            ? 'admin_verified_waiting_payment'
+            : $order->order_status);
 
     $timelineStepName = function (string $name): ?string {
         $normalized = strtolower(trim($name));
 
-        if (str_contains($normalized, 'cutting') || str_contains($normalized, 'persiapan bahan')) {
+        if (str_contains($normalized, 'cutting')) {
+            return 'Cutting';
+        }
+
+        if (str_contains($normalized, 'persiapan bahan')) {
             return null;
         }
 
@@ -150,6 +163,19 @@
 
     $frontIsImage = $isPreviewableImage($designFrontPath);
     $backIsImage = $isPreviewableImage($designBackPath);
+    $isAdminVerified = (string) ($order->admin_verification_status ?? 'pending') === 'verified';
+    $isRevisionRequested = (string) ($order->admin_verification_status ?? 'pending') === 'revision_requested';
+    $visiblePayments = $order->payments->filter(static function ($payment): bool {
+        if (in_array($payment->status, ['verified', 'rejected'], true)) {
+            return true;
+        }
+
+        if ($payment->method === 'settlement') {
+            return true;
+        }
+
+        return (bool) $payment->proof_path || (bool) $payment->midtrans_order_id;
+    });
 @endphp
 
 <style>
@@ -321,6 +347,16 @@
         z-index: 1;
     }
 
+    .timeline-dot::after {
+        content: "";
+        position: absolute;
+        inset: -8px;
+        border-radius: 999px;
+        border: 2px solid transparent;
+        opacity: 0;
+        pointer-events: none;
+    }
+
     .timeline-item-done .timeline-dot {
         border-color: #8cc8ad;
         background: #eaf7ef;
@@ -331,6 +367,27 @@
         border-color: #e0c578;
         background: #fdf6e7;
         color: #9a6a00;
+        box-shadow: 0 0 0 4px rgba(224, 197, 120, 0.22);
+    }
+
+    .timeline-item-progress .timeline-dot::after {
+        border-color: rgba(224, 197, 120, 0.75);
+        animation: timeline-pulse 1.6s ease-out infinite;
+    }
+
+    @keyframes timeline-pulse {
+        0% {
+            transform: scale(0.78);
+            opacity: 0.95;
+        }
+        70% {
+            transform: scale(1.18);
+            opacity: 0;
+        }
+        100% {
+            transform: scale(1.18);
+            opacity: 0;
+        }
     }
 
     .timeline-item-title {
@@ -479,10 +536,12 @@
                     <p class="spec-label">Estimasi Selesai</p>
                     <p class="spec-value">{{ $order->estimated_finish_date?->format('d M Y') }}</p>
                 </div>
-                <div class="spec-item">
-                    <p class="spec-label">Tipe Pembayaran Awal</p>
-                    <p class="spec-value">{{ $order->payment_type === 'dp' ? 'DP 50%' : 'Lunas' }}</p>
-                </div>
+                @if ($isAdminVerified)
+                    <div class="spec-item">
+                        <p class="spec-label">Tipe Pembayaran Awal</p>
+                        <p class="spec-value">{{ $order->payment_type === 'dp' ? 'DP 50%' : 'Lunas' }}</p>
+                    </div>
+                @endif
             </div>
 
             @if ($displayCustomerNote !== '')
@@ -552,7 +611,7 @@
     </div>
 </div>
 
-<div class="grid grid-2" style="margin-top:1rem;">
+<div class="grid {{ $isAdminVerified ? 'grid-2' : 'grid-1' }}" style="margin-top:1rem;">
     <div class="card">
         <h3 style="margin-top:0;">Distribusi Ukuran</h3>
         <table>
@@ -562,22 +621,24 @@
         </table>
     </div>
 
-    <div class="card">
-        <h3 style="margin-top:0;">Rincian Pembayaran</h3>
-        <table>
-            <tr><th>Subtotal</th><td>Rp {{ number_format($order->subtotal, 0, ',', '.') }}</td></tr>
-            <tr><th>DP / Awal</th><td>Rp {{ number_format($order->dp_amount, 0, ',', '.') }}</td></tr>
-            <tr><th>Sisa Bayar</th><td>Rp {{ number_format($order->remaining_amount, 0, ',', '.') }}</td></tr>
-        </table>
+    @if ($isAdminVerified)
+        <div class="card">
+            <h3 style="margin-top:0;">Rincian Pembayaran</h3>
+            <table>
+                <tr><th>Subtotal</th><td>Rp {{ number_format($order->subtotal, 0, ',', '.') }}</td></tr>
+                <tr><th>DP / Awal</th><td>Rp {{ number_format($order->dp_amount, 0, ',', '.') }}</td></tr>
+                <tr><th>Sisa Bayar</th><td>Rp {{ number_format($order->remaining_amount, 0, ',', '.') }}</td></tr>
+            </table>
 
-        @if ($order->isSettlementRequired() && $order->order_status === 'finishing_waiting_settlement')
-            <form method="POST" action="{{ route('customer.orders.settlement', $order) }}" style="margin-top:0.9rem;">
-                @csrf
-                <button class="btn btn-danger" type="submit">Lakukan Pelunasan Sekarang</button>
-            </form>
-            <p class="muted" style="margin-bottom:0; margin-top:0.6rem;">Produksi tidak dapat diselesaikan sebelum pelunasan diverifikasi.</p>
-        @endif
-    </div>
+            @if ($order->isSettlementRequired() && $order->order_status === 'finishing_waiting_settlement')
+                <form method="POST" action="{{ route('customer.orders.settlement', $order) }}" style="margin-top:0.9rem;">
+                    @csrf
+                    <button class="btn btn-danger" type="submit">Lakukan Pelunasan Sekarang</button>
+                </form>
+                <p class="muted" style="margin-bottom:0; margin-top:0.6rem;">Produksi tidak dapat diselesaikan sebelum pelunasan diverifikasi.</p>
+            @endif
+        </div>
+    @endif
 </div>
 
 <div class="card" style="margin-top:1rem;">
@@ -666,12 +727,27 @@
     @endif
 </div>
 
-<div class="card" style="margin-top:1rem;">
-    <h3>Riwayat Pembayaran</h3>
-    <table>
-        <thead><tr><th>Metode</th><th>Transfer Ke</th><th>Pengirim</th><th>Nominal</th><th>Status</th><th>Bukti</th><th>Aksi</th><th>Catatan</th></tr></thead>
-        <tbody>
-        @foreach($order->payments as $payment)
+@if ($isRevisionRequested)
+    <div class="card" style="margin-top:1rem;">
+        <h3 style="margin-top:0;">Pengajuan Kembali dari Admin</h3>
+        <p class="muted" style="margin-top:0;">{{ $order->admin_verification_note ?: 'Admin meminta revisi pada pesanan ini.' }}</p>
+        <form method="POST" action="{{ route('customer.orders.revision.approve', $order) }}" style="margin:0;">
+            @csrf
+            <button class="btn btn-brand" type="submit">Setujui Revisi</button>
+        </form>
+    </div>
+@endif
+
+@if ($isAdminVerified)
+    <div class="card" style="margin-top:1rem;">
+        <h3>Riwayat Pembayaran</h3>
+        @if ($visiblePayments->isEmpty())
+            <p class="muted" style="margin:0;">Riwayat pembayaran akan tampil setelah customer memilih metode pembayaran dan mengirim pembayaran.</p>
+        @else
+            <table>
+                <thead><tr><th>Tipe Bayar</th><th>Nominal</th><th>Status</th><th>Status Midtrans</th><th>Channel</th><th>ID Transaksi</th><th>Aksi</th><th>Catatan</th></tr></thead>
+                <tbody>
+            @foreach($visiblePayments as $payment)
             @php
                 $displayNotes = $payment->notes;
 
@@ -687,35 +763,41 @@
                     $displayNotes = trim(implode(PHP_EOL, $cleaned));
                 }
             @endphp
-            <tr>
+                <tr>
                 <td>{{ $payment->method }}</td>
-                <td>{{ $payment->destinationBankDetails()['label'] ?? '-' }}</td>
-                <td>
-                    {{ $payment->sender_bank_name ?? '-' }}<br>
-                    <span class="muted">{{ $payment->sender_account_name ?? '-' }}</span>
-                </td>
                 <td>Rp {{ number_format($payment->amount, 0, ',', '.') }}</td>
                 <td><span class="status-pill {{ $statusClass($payment->status) }}">{{ str_replace('_', ' ', $payment->status) }}</span></td>
+                <td>{{ $payment->midtrans_status ?: '-' }}</td>
+                <td>{{ $payment->midtrans_payment_type ?: '-' }}</td>
                 <td>
-                    @if ($payment->proof_path)
-                        <a href="{{ route('customer.orders.payments.proof', [$order, $payment]) }}" target="_blank">Lihat</a>
+                    @if ($payment->midtrans_transaction_id)
+                        <span class="muted">{{ $payment->midtrans_transaction_id }}</span>
                     @else
-                        Belum ada
+                        -
                     @endif
                 </td>
                 <td>
-                    @if ($payment->status === 'rejected')
-                        <a class="history-action-btn history-action-btn-reupload" href="{{ route('customer.orders.payments.edit', [$order, $payment]) }}">Kirim Ulang</a>
-                    @elseif ($payment->status !== 'verified')
-                        <a href="{{ route('customer.orders.payments.edit', [$order, $payment]) }}">Isi / ubah</a>
-                    @else
+                    @if ($payment->status === 'verified')
                         <a href="{{ route('customer.invoices.show', [$order, $payment]) }}" target="_blank">Invoice</a>
+                    @elseif (in_array($payment->midtrans_status, ['settlement', 'capture'], true))
+                        <span class="muted">Menunggu sinkronisasi</span>
+                    @elseif ($payment->status === 'rejected')
+                        <a class="history-action-btn history-action-btn-reupload" href="{{ route('customer.orders.payments.edit', [$order, $payment]) }}">Bayar Ulang</a>
+                    @else
+                        <a href="{{ route('customer.orders.payments.edit', [$order, $payment]) }}">Lanjut Bayar</a>
                     @endif
                 </td>
                 <td>{{ $displayNotes !== '' ? $displayNotes : '-' }}</td>
-            </tr>
-        @endforeach
-        </tbody>
-    </table>
-</div>
+                </tr>
+            @endforeach
+                </tbody>
+            </table>
+        @endif
+    </div>
+@else
+    <div class="card" style="margin-top:1rem;">
+        <h3>Riwayat Pembayaran</h3>
+        <p class="muted" style="margin:0;">Pembayaran akan tersedia setelah pesanan selesai diverifikasi admin.</p>
+    </div>
+@endif
 @endsection

@@ -3,27 +3,24 @@
 @section('content')
 @php
     $statusClass = static function (string $status): string {
-        return match ($status) {
-            'submitted', 'pending_verification', 'verified_payment', 'verified_dp' => 'status-warning',
-            'in_production' => 'status-info',
-            'finishing_waiting_settlement' => 'status-accent',
-            'completed' => 'status-success',
-            'rejected' => 'status-danger',
-            default => 'status-neutral',
-        };
+        return \App\Support\OrderStatusPresenter::customerClass($status);
     };
 
     $statusLabel = static function (string $status): string {
-        return match ($status) {
-            'submitted', 'pending_verification' => 'Menunggu Verifikasi',
-            'verified_payment', 'verified_dp' => 'Menunggu Produksi',
-            'in_production' => 'Sedang Proses',
-            'finishing_waiting_settlement' => 'Menunggu Bayar',
-            'completed' => 'Selesai',
-            'rejected' => 'Rejected',
-            default => ucfirst(str_replace('_', ' ', $status)),
-        };
+        return \App\Support\OrderStatusPresenter::customerLabel($status);
     };
+
+    $resolveOrderStatus = static function ($order, $lastPayment): string {
+        return \App\Support\OrderStatusPresenter::resolveForCustomer($order, $lastPayment);
+    };
+
+    $finishedStatuses = ['completed'];
+    $activeRecentOrders = $recentOrders
+        ->filter(static fn ($order): bool => ! in_array($order->order_status, $finishedStatuses, true))
+        ->values();
+    $completedRecentOrders = $recentOrders
+        ->filter(static fn ($order): bool => in_array($order->order_status, $finishedStatuses, true))
+        ->values();
 @endphp
 
 <style>
@@ -31,7 +28,7 @@
         background: #ffffff;
         border: 1px solid #d9e2ea;
         border-radius: 14px;
-        padding: 1.25rem 1.35rem 1.35rem;
+        padding: 1.5rem 2rem 1.5rem;
     }
 
     .customer-greeting h1 {
@@ -51,9 +48,34 @@
 
     .summary-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 0.95rem;
         margin-bottom: 1.2rem;
+    }
+
+    .summary-card {
+        background: #ffffff;
+        border: 1px solid #d9e2ec;
+        border-radius: 12px;
+        padding: 1rem 1.05rem;
+        border-top: 4px solid #c6d3df;
+        box-shadow: 0 1px 3px rgba(15, 43, 61, 0.03);
+    }
+
+    .summary-card.orders {
+        border-top-color: #142730;
+    }
+
+    .summary-card.active {
+        border-top-color: #0c7fb6;
+    }
+
+    .summary-card.pending {
+        border-top-color: #d95f18;
+    }
+
+    .summary-card.completed {
+        border-top-color: #0f8f60;
     }
 
     .due-payment-alert {
@@ -70,21 +92,71 @@
         font-size: 0.86rem;
     }
 
-    .due-payment-alert strong {
+    .due-revision-alert {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+        border-radius: 12px;
+        border: 1px solid #f1c7c7;
+        background: #fff3f3;
+        padding: 0.72rem 0.95rem;
+        color: #b42318;
+        font-size: 0.86rem;
+    }
+
+    .due-settlement-alert {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+        border-radius: 12px;
+        border: 1px solid #f2c7be;
+        background: #fff1ed;
+        padding: 0.72rem 0.95rem;
+        color: #a5361f;
+        font-size: 0.86rem;
+    }
+
+    .due-payment-alert strong,
+    .due-revision-alert strong,
+    .due-settlement-alert strong {
         font-weight: 700;
     }
 
-    .due-payment-alert a {
+    .due-payment-alert a,
+    .due-revision-alert a,
+    .due-settlement-alert a {
         color: #b63b22;
         font-weight: 700;
         text-decoration: underline;
     }
 
-    .summary-card {
-        background: #ffffff;
-        border: 1px solid #d9e2ec;
+    .ready-pickup-alert {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
         border-radius: 12px;
-        padding: 1rem 1.05rem;
+        border: 1px solid #9fd5c6;
+        background: linear-gradient(135deg, #ebfff7 0%, #def7f0 100%);
+        padding: 0.78rem 1rem;
+        color: #0f6648;
+        font-size: 0.88rem;
+        box-shadow: 0 6px 16px rgba(12, 115, 80, 0.12);
+    }
+
+    .ready-pickup-alert strong {
+        font-weight: 700;
+    }
+
+    .ready-pickup-alert a {
+        color: #0f6648;
+        font-weight: 700;
+        text-decoration: underline;
     }
 
     .summary-card .label {
@@ -141,8 +213,8 @@
         justify-content: center;
         border-radius: 10px;
         border: 1px solid #c8a949;
-        background: #c8a949;
-        color: #0f2947;
+        background: #eccc6a;
+        color: #060607;
         text-decoration: none;
         font-weight: 700;
         font-size: 0.8rem;
@@ -223,9 +295,62 @@
         text-decoration: underline;
     }
 
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+        width: fit-content;
+        align-items: flex-start;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.48rem 0.9rem;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-decoration: none;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .action-btn-outline {
+        color: #0f7b8f;
+        border-color: #0f7b8f;
+        background: transparent;
+        display: inline-flex;
+        width: auto;
+        align-self: flex-start;
+    }
+
+    .action-btn-outline:hover {
+        background: #e8f4f5;
+    }
+
+    .action-btn-primary {
+        color: #fff;
+        background: #122c5f;
+        border-color: #122c5f;
+        display: flex;
+        width: 100%;
+        align-self: stretch;
+    }
+
+    .action-btn-primary:hover {
+        background: #3a60ac;
+        border-color: #3a60ac;
+    }
+
     .payment-cell {
         display: grid;
         gap: 0.35rem;
+    }
+
+    .payment-cell-center {
+        align-items: center;
     }
 
     .payment-pill {
@@ -266,6 +391,24 @@
         font-weight: 600;
     }
 
+    .payment-waiting-note {
+        color: #d51919;
+        font-weight: 700;
+    }
+
+    .status-head {
+        text-align: center !important;
+    }
+
+    .status-cell {
+        text-align: center !important;
+        white-space: nowrap;
+    }
+
+    .status-cell .status-pill {
+        margin-inline: auto;
+    }
+
     @media (max-width: 980px) {
         .summary-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -298,102 +441,320 @@
         <p>Pantau pesanan dan mulai order custom Anda dari sini</p>
     </div>
 
-    @if ($duePaymentOrder)
-        <div class="due-payment-alert">
+    @if ($dueWaitingPaymentOrder)
+        @php
+            $dueWaitingPayment = $dueWaitingPaymentOrder->payments
+                ->sortByDesc('id')
+                ->first(static function ($payment) use ($dueWaitingPaymentOrder): bool {
+                    if ($payment->status !== 'pending') {
+                        return false;
+                    }
+
+                    if (in_array($payment->midtrans_status, ['settlement', 'capture'], true)) {
+                        return false;
+                    }
+
+                    if ($payment->method === 'settlement') {
+                        return $dueWaitingPaymentOrder->order_status === 'finishing_waiting_settlement';
+                    }
+
+                    return (string) ($dueWaitingPaymentOrder->admin_verification_status ?? 'pending') === 'verified';
+                });
+        @endphp
+        @if ($dueWaitingPayment)
+            <div class="due-payment-alert">
+                <span>🔔</span>
+                <span>
+                    @if (($waitingPaymentAlertCount ?? 0) > 1)
+                        Ada <b>{{ $waitingPaymentAlertCount }}</b> pesanan yang <b>Menunggu Pembayaran</b>. Contoh: <b>{{ $dueWaitingPaymentOrder->order_code }}</b>.
+                    @else
+                        Pesanan <b>{{ $dueWaitingPaymentOrder->order_code }}</b> sudah <b>Terverifikasi</b> dan <b>Menunggu Pembayaran</b>.
+                    @endif
+                </span>
+                <a href="{{ route('customer.orders.payments.edit', [$dueWaitingPaymentOrder, $dueWaitingPayment]) }}">Lanjut Pembayaran</a>
+            </div>
+        @endif
+    @endif
+
+    @if ($dueRevisionOrder)
+        <div class="due-revision-alert">
+            <span>⚠️</span>
+            <span>Pesanan <b>{{ $dueRevisionOrder->order_code }}</b> sedang <b>Menunggu Persetujuan Perubahan</b> dari Anda.</span>
+            <a href="{{ route('customer.orders.show', $dueRevisionOrder) }}">Tinjau Pesanan</a>
+        </div>
+    @endif
+
+    @if ($dueSettlementOrder)
+        @php
+            $pendingSettlementPayment = $dueSettlementOrder->payments
+                ->sortByDesc('id')
+                ->first(static function ($payment) use ($dueSettlementOrder): bool {
+                    if ($payment->status !== 'pending' || $payment->method !== 'settlement') {
+                        return false;
+                    }
+
+                    if (in_array($payment->midtrans_status, ['settlement', 'capture'], true)) {
+                        return false;
+                    }
+
+                    return $dueSettlementOrder->order_status === 'finishing_waiting_settlement';
+                });
+        @endphp
+        <div class="due-settlement-alert">
             <span>🔔</span>
-            <span> Pesanan <b>{{ $duePaymentOrder->order_code }}</b> memasuki tahap Finishing. Segera lakukan pelunasan sebesar <b>Rp {{ number_format((float) $duePaymentOrder->remaining_amount, 0, ',', '.') }}</b> agar produksi dapat diselesaikan.</span>
-            <a href="{{ route('customer.orders.index', ['focus' => 'status']) }}">Lihat Detail →</a>
+            <span>
+                @if (($settlementAlertCount ?? 0) > 1)
+                    Ada <b>{{ $settlementAlertCount }}</b> pesanan yang <b>Menunggu Pelunasan</b>. Contoh: <b>{{ $dueSettlementOrder->order_code }}</b>.
+                @else
+                    Pesanan <b>{{ $dueSettlementOrder->order_code }}</b> sudah masuk tahap finishing dan <b>Menunggu Pelunasan</b>.
+                @endif
+            </span>
+            @if ($pendingSettlementPayment)
+                <a href="{{ route('customer.orders.payments.edit', [$dueSettlementOrder, $pendingSettlementPayment]) }}">Lanjut Pelunasan</a>
+            @else
+                <form method="POST" action="{{ route('customer.orders.settlement', $dueSettlementOrder) }}" style="margin:0;">
+                    @csrf
+                    <button type="submit" style="border:none; background:none; color:#b63b22; font-weight:700; text-decoration:underline; cursor:pointer; padding:0;">Lanjut Pelunasan</button>
+                </form>
+            @endif
+        </div>
+    @endif
+
+    @if ($readyPickupOrder)
+        <div class="ready-pickup-alert">
+            <span>✅</span>
+            <span>
+                @if (($readyPickupAlertCount ?? 0) > 1)
+                    Ada <strong>{{ $readyPickupAlertCount }}</strong> pesanan siap ambil. Produksi selesai. Pesanan Anda telah melalui pengecekan akhir dan siap untuk diambil.
+                @else
+                    Produksi selesai. Pesanan Anda telah melalui pengecekan akhir dan siap untuk diambil. <strong>{{ $readyPickupOrder->order_code }}</strong> sudah siap.
+                @endif
+            </span>
+            <a href="{{ route('customer.orders.index', ['focus' => 'status']) }}">Lihat Status Produksi</a>
         </div>
     @endif
 
     <div class="summary-grid">
-        <article class="summary-card">
+        <article class="summary-card orders">
             <div class="label">Total Pesanan</div>
             <div class="value">{{ $totalOrders }}</div>
             <div class="note">Semua pesanan</div>
         </article>
-        <article class="summary-card">
-            <div class="label">Sedang Proses</div>
+        <article class="summary-card active">
+            <div class="label">Dalam Produksi</div>
             <div class="value">{{ $inProgressOrders }}</div>
-            <div class="note">Dalam produksi</div>
+            <div class="note">Sedang diproses tim produksi</div>
         </article>
-        <article class="summary-card">
-            <div class="label">Menunggu Bayar</div>
+        <article class="summary-card pending">
+            <div class="label">Menunggu Verifikasi</div>
             <div class="value">{{ $waitingPaymentOrders }}</div>
-            <div class="note">Perlu tindakan</div>
+            <div class="note">Proses review admin</div>
+        </article>
+        <article class="summary-card completed">
+            <div class="label">Pesanan Selesai</div>
+            <div class="value">{{ $completedOrders ?? 0 }}</div>
+            <div class="note">Pesanan Sudah Selesai</div>
         </article>
     </div>
 
     <section class="recent-orders">
         <div class="recent-orders-head">
             <h2>Pesanan Terbaru</h2>
-            <a class="btn-create-order" href="{{ route('customer.orders.create') }}">+ Buat Pesanan Baru</a>
+            <a class="btn-create-order" href="{{ route('customer.orders.create') }}">Buat Pesanan Baru</a>
         </div>
 
         <div class="recent-orders-wrap">
             <table class="recent-orders-table">
                 <thead>
-                <tr>
-                    <th>No. Order</th>
-                    <th class="col-product">Produk</th>
-                    <th>Qty</th>
-                    <th>Total</th>
-                    <th>Pembayaran</th>
-                    <th>Status</th>
-                    <th>Aksi</th>
-                </tr>
+                    <tr>
+                        <th>No. Order</th>
+                        <th class="col-product">Produk</th>
+                        <th>Qty</th>
+                        <th>Total</th>
+                        <th>Pembayaran</th>
+                        <th class="status-head">Status</th>
+                        <th>Aksi</th>
+                    </tr>
                 </thead>
                 <tbody>
-                @forelse ($recentOrders as $order)
-                    @php
-                        $lastPayment = $order->payments->sortByDesc('id')->first();
-                        $statusForDisplay = ($lastPayment?->status === 'rejected')
-                            ? 'rejected'
-                            : $order->order_status;
-                        $paymentMethod = $lastPayment?->method ?: $order->payment_type;
-                        $paymentMethodClass = match ($paymentMethod) {
-                            'dp' => 'payment-pill-dp',
-                            'full' => 'payment-pill-full',
-                            'settlement' => 'payment-pill-settlement',
-                            default => 'payment-pill-dp',
-                        };
-                        $paymentMethodLabel = match ($paymentMethod) {
-                            'dp' => 'DP Terbayar',
-                            'full' => 'Lunas Awal',
-                            'settlement' => 'Pelunasan',
-                            default => strtoupper((string) $paymentMethod),
-                        };
-                    @endphp
-                    <tr>
-                        <td>{{ $order->order_code }}</td>
-                        <td class="col-product"><span>{{ $order->product_name ?: '-' }}</span></td>
-                        <td>{{ number_format((int) $order->total_pcs, 0, ',', '.') }}</td>
-                        <td>Rp {{ number_format((float) $order->subtotal, 0, ',', '.') }}</td>
-                        <td>
-                            <div class="payment-cell">
-                                <span class="payment-pill {{ $paymentMethodClass }}">{{ $paymentMethodLabel }}</span>
-                                @if ((float) $order->remaining_amount > 0)
-                                    <span class="payment-amount-note">Sisa Rp {{ number_format((float) $order->remaining_amount, 0, ',', '.') }}</span>
-                                @else
-                                    <span class="payment-amount-note">Sudah lunas</span>
-                                @endif
-                            </div>
-                        </td>
-                        <td>
-                            <span class="status-pill {{ $statusClass($statusForDisplay) }}">{{ $statusLabel($statusForDisplay) }}</span>
-                        </td>
-                        <td><a class="action-link" href="{{ route('customer.orders.show', $order) }}">Detail</a></td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="table-empty">
-                            Belum ada pesanan. <a href="{{ route('customer.orders.create') }}">Buat pesanan pertama Anda →</a>
-                        </td>
-                    </tr>
-                @endforelse
+                    @forelse ($activeRecentOrders as $order)
+                        @php
+                            $latestPayment = $order->payments->sortByDesc('id')->first();
+                            $latestVerifiedPayment = $order->payments
+                                ->where('status', 'verified')
+                                ->sortByDesc(fn ($payment) => $payment->verified_at ?? $payment->updated_at ?? $payment->created_at)
+                                ->first();
+                            $statusForDisplay = $resolveOrderStatus($order, $latestPayment);
+                            $isAdminVerified = (string) ($order->admin_verification_status ?? 'pending') === 'verified';
+                            $isWaitingPayment = $statusForDisplay === 'admin_verified_waiting_payment';
+                            $pendingActionPayment = $order->payments
+                                ->sortByDesc('id')
+                                ->first(static function ($payment) use ($order): bool {
+                                    if ($payment->status !== 'pending') {
+                                        return false;
+                                    }
+
+                                    if (in_array($payment->midtrans_status, ['settlement', 'capture'], true)) {
+                                        return false;
+                                    }
+
+                                    if ($payment->method === 'settlement') {
+                                        return $order->order_status === 'finishing_waiting_settlement';
+                                    }
+
+                                    if (($order->admin_verification_status ?? 'pending') !== 'verified') {
+                                        return false;
+                                    }
+
+                                    return true;
+                                });
+                            $displayPayment = $latestVerifiedPayment ?: $latestPayment;
+                            $paymentMethod = $displayPayment?->method ?: ($order->payment_type ?? null);
+
+                            $paymentMethodClass = match ($paymentMethod) {
+                                'dp' => 'payment-pill-dp',
+                                'full' => 'payment-pill-full',
+                                'settlement' => 'payment-pill-settlement',
+                                default => 'payment-pill-dp',
+                            };
+
+                            $paymentMethodLabel = match ($paymentMethod) {
+                                'dp' => 'DP 50%',
+                                'full' => 'Lunas Awal',
+                                'settlement' => 'Pelunasan',
+                                default => strtoupper((string) $paymentMethod),
+                            };
+                        @endphp
+                        <tr>
+                            <td>{{ $order->order_code }}</td>
+                            <td class="col-product"><span>{{ $order->product_name ?: '-' }}</span></td>
+                            <td>{{ number_format((int) $order->total_pcs, 0, ',', '.') }}</td>
+                            <td>Rp {{ number_format((float) $order->subtotal, 0, ',', '.') }}</td>
+                            <td>
+                                <div class="payment-cell">
+                                    @if (! $isAdminVerified)
+                                        <span class="payment-amount-note">Menunggu verifikasi admin</span>
+                                    @elseif ($latestVerifiedPayment)
+                                        <span class="payment-pill {{ $paymentMethodClass }}">{{ $paymentMethodLabel }}</span>
+                                        @if ((string) $paymentMethod === 'dp')
+                                            <span class="payment-amount-note">DP Rp {{ number_format((float) $order->dp_amount, 0, ',', '.') }}</span>
+                                            <span class="payment-amount-note">Sisa Rp {{ number_format((float) $order->remaining_amount, 0, ',', '.') }}</span>
+                                        @elseif ((string) $paymentMethod === 'settlement')
+                                            <span class="payment-amount-note">Pelunasan Rp {{ number_format((float) ($displayPayment->amount ?? $order->remaining_amount), 0, ',', '.') }}</span>
+                                            <span class="payment-amount-note">Sisa Rp {{ number_format((float) $order->remaining_amount, 0, ',', '.') }}</span>
+                                        @else
+                                            <span class="payment-amount-note">Lunas Rp {{ number_format((float) $order->subtotal, 0, ',', '.') }}</span>
+                                            <span class="payment-amount-note">Sudah lunas</span>
+                                        @endif
+                                    @elseif ($isWaitingPayment)
+                                        <span class="payment-amount-note payment-waiting-note">Menunggu Pembayaran</span>
+                                        <span class="payment-amount-note">Silakan lanjut pembayaran</span>
+                                    @else
+                                        <span class="payment-pill {{ $paymentMethodClass }}">{{ $paymentMethodLabel }}</span>
+                                        @if ((float) $order->remaining_amount > 0)
+                                            <span class="payment-amount-note">Sisa Rp {{ number_format((float) $order->remaining_amount, 0, ',', '.') }}</span>
+                                        @else
+                                            <span class="payment-amount-note">Sudah lunas</span>
+                                        @endif
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="status-cell">
+                                <span class="status-pill {{ $statusClass($statusForDisplay) }}">{{ $statusLabel($statusForDisplay) }}</span>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a class="action-btn action-btn-outline" href="{{ route('customer.orders.show', $order) }}">Detail</a>
+                                    @if ($isWaitingPayment && $pendingActionPayment)
+                                        <a class="action-btn action-btn-primary" href="{{ route('customer.orders.payments.edit', [$order, $pendingActionPayment]) }}">Lanjut Pembayaran</a>
+                                    @elseif ($pendingActionPayment && $pendingActionPayment->method === 'settlement')
+                                        <a class="action-btn action-btn-primary" href="{{ route('customer.orders.payments.edit', [$order, $pendingActionPayment]) }}">Lanjut Pelunasan</a>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="table-empty">Belum ada pesanan berjalan.</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
     </section>
+
+    @if ($completedRecentOrders->isNotEmpty())
+        <section class="recent-orders" style="margin-top: 1rem;">
+            <div class="recent-orders-head">
+                <h2>Pesanan Selesai</h2>
+                <a class="btn-create-order" href="{{ route('customer.orders.index') }}">Lihat Semua Riwayat</a>
+            </div>
+
+            <div class="recent-orders-wrap">
+                <table class="recent-orders-table">
+                    <thead>
+                        <tr>
+                            <th>No. Order</th>
+                            <th class="col-product">Produk</th>
+                            <th>Qty</th>
+                            <th>Total</th>
+                            <th>Pembayaran</th>
+                            <th class="status-head">Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($completedRecentOrders as $order)
+                            @php
+                                $latestPayment = $order->payments->sortByDesc('id')->first();
+                                $latestVerifiedPayment = $order->payments
+                                    ->where('status', 'verified')
+                                    ->sortByDesc(fn ($payment) => $payment->verified_at ?? $payment->updated_at ?? $payment->created_at)
+                                    ->first();
+                                $statusForDisplay = $resolveOrderStatus($order, $latestPayment);
+                                $displayPayment = $latestVerifiedPayment ?: $latestPayment;
+                                $paymentMethod = $displayPayment?->method ?: ($order->payment_type ?? null);
+
+                                $paymentMethodClass = match ($paymentMethod) {
+                                    'dp' => 'payment-pill-dp',
+                                    'full' => 'payment-pill-full',
+                                    'settlement' => 'payment-pill-settlement',
+                                    default => 'payment-pill-dp',
+                                };
+
+                                $paymentMethodLabel = match ($paymentMethod) {
+                                    'dp' => 'DP 50%',
+                                    'full' => 'Lunas Awal',
+                                    'settlement' => 'Pelunasan',
+                                    default => strtoupper((string) $paymentMethod),
+                                };
+                            @endphp
+                            <tr>
+                                <td>{{ $order->order_code }}</td>
+                                <td class="col-product"><span>{{ $order->product_name ?: '-' }}</span></td>
+                                <td>{{ number_format((int) $order->total_pcs, 0, ',', '.') }}</td>
+                                <td>Rp {{ number_format((float) $order->subtotal, 0, ',', '.') }}</td>
+                                <td>
+                                    <div class="payment-cell">
+                                        <span class="payment-pill {{ $paymentMethodClass }}">{{ $paymentMethodLabel }}</span>
+                                        <span class="payment-amount-note">Rp {{ number_format((float) ($displayPayment->amount ?? $order->subtotal), 0, ',', '.') }}</span>
+                                        <span class="payment-amount-note">Sisa Rp {{ number_format((float) $order->remaining_amount, 0, ',', '.') }}</span>
+                                    </div>
+                                </td>
+                                <td class="status-cell">
+                                    <span class="status-pill {{ $statusClass($statusForDisplay) }}">{{ $statusLabel($statusForDisplay) }}</span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a class="action-btn action-btn-outline" href="{{ route('customer.orders.show', $order) }}">Detail</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    @endif
 </section>
 @endsection

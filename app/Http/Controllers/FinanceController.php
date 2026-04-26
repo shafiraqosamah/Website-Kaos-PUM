@@ -10,18 +10,31 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Midtrans\Config;
+use Midtrans\Transaction;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FinanceController extends Controller
 {
     public function index(): View
     {
+        $this->syncMidtransPayments();
+
         $pendingPayments = Payment::with('order.user')
             ->where('status', 'pending')
-            ->whereNotNull('proof_path')
-            ->whereNotNull('destination_bank')
-            ->whereNotNull('sender_bank_name')
-            ->whereNotNull('sender_account_name')
+            ->where(function ($query): void {
+                $query
+                    // Manual transfer entries.
+                    ->where(function ($manual): void {
+                        $manual
+                            ->whereNotNull('proof_path')
+                            ->whereNotNull('destination_bank')
+                            ->whereNotNull('sender_bank_name')
+                            ->whereNotNull('sender_account_name');
+                    })
+                    // Midtrans entries: no manual proof fields required.
+                    ->orWhereNotNull('midtrans_order_id');
+            })
             ->latest()
             ->get();
 
@@ -46,6 +59,93 @@ class FinanceController extends Controller
             ->values();
 
         return view('finance.index', compact('pendingPayments', 'verifiedPayments', 'rejectedPayments', 'rejectReasons'));
+    }
+
+    private function syncMidtransPayments(): void
+    {
+        Config::$serverKey = config('midtrans.server_key');
+        Config::$clientKey = config('midtrans.client_key');
+        Config::$isProduction = config('midtrans.is_production');
+        Config::$isSanitized = config('midtrans.is_sanitized');
+        Config::$is3ds = config('midtrans.is_3ds');
+
+        $midtransPayments = Payment::with('order')
+            ->whereNotNull('midtrans_order_id')
+            ->whereIn('status', ['pending', 'rejected'])
+            ->latest()
+            ->limit(60)
+            ->get();
+
+        foreach ($midtransPayments as $payment) {
+            try {
+                $status = Transaction::status($payment->midtrans_order_id);
+
+                $payment->update([
+                    'midtrans_transaction_id' => $status->transaction_id ?? $payment->midtrans_transaction_id,
+                    'midtrans_status' => $status->transaction_status ?? $payment->midtrans_status,
+                    'midtrans_payment_type' => $status->payment_type ?? $payment->midtrans_payment_type,
+                    'midtrans_fraud_status' => $status->fraud_status ?? $payment->midtrans_fraud_status,
+                    'midtrans_response' => (array) $status,
+                ]);
+
+                $this->applyMidtransState($payment, (string) ($status->transaction_status ?? 'pending'));
+            } catch (\Throwable $e) {
+                // Keep finance page resilient when Midtrans API has temporary issues.
+                report($e);
+            }
+        }
+    }
+
+    private function applyMidtransState(Payment $payment, string $midtransStatus): void
+    {
+        $order = $payment->order;
+
+        if (in_array($midtransStatus, ['settlement', 'capture'], true)) {
+            if ($payment->status !== 'verified') {
+                $payment->update([
+                    'status' => 'verified',
+                    'invoice_number' => $payment->invoice_number ?: $this->generateInvoiceNumber($payment),
+                    'invoiced_at' => $payment->invoiced_at ?: now(),
+                    'verified_at' => now(),
+                ]);
+            }
+
+            if ($payment->method === 'settlement') {
+                $order->update([
+                    'remaining_amount' => 0,
+                    'payment_status' => 'fully_paid',
+                    'order_status' => 'in_production',
+                ]);
+
+                return;
+            }
+
+            if ($payment->method === 'full') {
+                $order->update([
+                    'payment_status' => 'fully_paid',
+                    'remaining_amount' => 0,
+                    'order_status' => 'verified_payment',
+                ]);
+            } else {
+                $order->update([
+                    'payment_status' => 'verified_dp',
+                    'order_status' => 'verified_payment',
+                ]);
+            }
+
+            $this->ensureWorkOrderAndSteps($order, $order->user_id);
+
+            return;
+        }
+
+        if (in_array($midtransStatus, ['deny', 'cancel', 'expire'], true)) {
+            if ($payment->status !== 'rejected') {
+                $payment->update([
+                    'status' => 'rejected',
+                    'verified_at' => now(),
+                ]);
+            }
+        }
     }
 
     public function verify(Request $request, Payment $payment): RedirectResponse

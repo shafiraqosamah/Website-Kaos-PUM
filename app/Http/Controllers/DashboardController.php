@@ -17,24 +17,88 @@ class DashboardController extends Controller
         if ($user->role === User::ROLE_CUSTOMER) {
             $totalOrders = Order::where('user_id', $user->id)->count();
             $inProgressOrders = Order::where('user_id', $user->id)
-                ->whereIn('order_status', ['submitted', 'pending_verification', 'verified_payment', 'verified_dp', 'in_production'])
+                ->whereIn('order_status', ['submitted', 'pending_verification', 'verified_payment', 'verified_dp', 'in_production', 'finishing_waiting_settlement'])
                 ->count();
             $waitingPaymentOrders = Order::where('user_id', $user->id)
-                ->where('remaining_amount', '>', 0)
-                ->where('order_status', 'finishing_waiting_settlement')
+                ->whereIn('order_status', ['submitted', 'pending_verification'])
+                ->whereHas('payments', static function ($query): void {
+                    $query->where('status', 'pending');
+                })
                 ->count();
-            $duePaymentOrder = Order::where('user_id', $user->id)
-                ->where('remaining_amount', '>', 0)
-                ->where('order_status', 'finishing_waiting_settlement')
+
+            $dueWaitingPaymentOrder = Order::with(['payments' => static function ($query): void {
+                    $query->where('status', 'pending')->latest('id');
+                }])
+                ->where('user_id', $user->id)
+                ->where('order_status', 'submitted')
+                ->where('admin_verification_status', 'verified')
+                ->whereHas('payments', static function ($query): void {
+                    $query->where('status', 'pending');
+                })
                 ->latest('updated_at')
                 ->first();
+
+            $waitingPaymentAlertCount = Order::where('user_id', $user->id)
+                ->where('order_status', 'submitted')
+                ->where('admin_verification_status', 'verified')
+                ->whereHas('payments', static function ($query): void {
+                    $query->where('status', 'pending');
+                })
+                ->count();
+
+            $dueRevisionOrder = Order::where('user_id', $user->id)
+                ->where('order_status', 'submitted')
+                ->where('admin_verification_status', 'revision_requested')
+                ->latest('updated_at')
+                ->first();
+
+            $dueSettlementOrder = Order::with(['payments' => static function ($query): void {
+                    $query->where('method', 'settlement')->where('status', 'pending')->latest('id');
+                }])
+                ->where('user_id', $user->id)
+                ->where('order_status', 'finishing_waiting_settlement')
+                ->where('remaining_amount', '>', 0)
+                ->latest('updated_at')
+                ->first();
+
+            $settlementAlertCount = Order::where('user_id', $user->id)
+                ->where('order_status', 'finishing_waiting_settlement')
+                ->where('remaining_amount', '>', 0)
+                ->count();
+
+            $completedOrders = Order::where('user_id', $user->id)
+                ->whereIn('order_status', ['ready_for_pickup', 'completed'])
+                ->count();
+
+            $readyPickupOrder = Order::where('user_id', $user->id)
+                ->where('order_status', 'ready_for_pickup')
+                ->latest('updated_at')
+                ->first();
+
+            $readyPickupAlertCount = Order::where('user_id', $user->id)
+                ->where('order_status', 'ready_for_pickup')
+                ->count();
+
             $recentOrders = Order::with('payments')
                 ->where('user_id', $user->id)
                 ->latest()
                 ->take(5)
                 ->get();
 
-            return view('dashboard.customer', compact('totalOrders', 'inProgressOrders', 'waitingPaymentOrders', 'duePaymentOrder', 'recentOrders'));
+            return view('dashboard.customer', compact(
+                'totalOrders',
+                'inProgressOrders',
+                'waitingPaymentOrders',
+                'dueWaitingPaymentOrder',
+                'waitingPaymentAlertCount',
+                'dueRevisionOrder',
+                'dueSettlementOrder',
+                'settlementAlertCount',
+                'completedOrders',
+                'readyPickupOrder',
+                'readyPickupAlertCount',
+                'recentOrders'
+            ));
         }
 
         if ($user->hasRole(User::ROLE_FINANCE)) {
@@ -60,24 +124,34 @@ class DashboardController extends Controller
         }
 
         if ($user->hasRole(User::ROLE_PRODUCTION)) {
-            $activeOrders = Order::whereIn('order_status', ['verified_payment', 'in_production', 'finishing_waiting_settlement'])->count();
+            $activeOrders = Order::whereIn('order_status', ['verified_payment', 'in_production', 'finishing_waiting_settlement', 'production_done_waiting_admin', 'ready_for_pickup'])->count();
             $waitingSettlement = Order::where('order_status', 'finishing_waiting_settlement')->count();
+            
+            // Count orders in finishing stage waiting for settlement
+            $finishingWaitingSettlement = Order::where('order_status', 'finishing_waiting_settlement')
+                ->where('remaining_amount', '>', 0)
+                ->count();
+            
+            // Fetch active orders with their production steps for SPK dashboard
+            $activeOrdersWithSteps = Order::with(['workOrder', 'productionSteps'])
+                ->whereIn('order_status', ['verified_payment', 'in_production', 'finishing_waiting_settlement', 'production_done_waiting_admin', 'ready_for_pickup'])
+                ->latest()
+                ->take(10)
+                ->get();
 
-            return view('dashboard.production', compact('activeOrders', 'waitingSettlement'));
+            return view('dashboard.production', compact('activeOrders', 'waitingSettlement', 'activeOrdersWithSteps', 'finishingWaitingSettlement'));
         }
+
+        $pendingOrderVerification = Order::where('admin_verification_status', 'pending')->count();
+        $productionWaitingVerification = Order::where('order_status', 'production_done_waiting_admin')->count();
 
         $summary = [
             'total_orders' => Order::count(),
-            'pending_verification' => Payment::where('status', 'pending')
-                ->whereNotNull('proof_path')
-                ->whereNotNull('destination_bank')
-                ->whereNotNull('sender_bank_name')
-                ->whereNotNull('sender_account_name')
-                ->count(),
+            'pending_verification' => $pendingOrderVerification,
             'in_production' => Order::whereIn('order_status', ['in_production', 'finishing_waiting_settlement'])->count(),
             'completed' => Order::where('order_status', 'completed')->count(),
         ];
 
-        return view('dashboard.management', compact('summary'));
+        return view('dashboard.management', compact('summary', 'pendingOrderVerification', 'productionWaitingVerification'));
     }
 }

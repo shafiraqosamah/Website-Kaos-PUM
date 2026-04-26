@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'PT Panji Usaha Mulia' }}</title>
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('images/logo.png') }}">
@@ -10,7 +11,49 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @endif
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap');
+        @font-face {
+            font-family: 'DM Sans';
+            font-style: normal;
+            font-weight: 400 700;
+            font-display: swap;
+            src: url("{{ asset('fonts/dm-sans/DMSans-latin.woff2') }}") format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191,
+                U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+
+        @font-face {
+            font-family: 'DM Sans';
+            font-style: normal;
+            font-weight: 400 700;
+            font-display: swap;
+            src: url("{{ asset('fonts/dm-sans/DMSans-latin-ext.woff2') }}") format('woff2');
+            unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+                U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+                U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+        }
+
+        @font-face {
+            font-family: 'Playfair Display';
+            font-style: normal;
+            font-weight: 600 700;
+            font-display: swap;
+            src: url("{{ asset('fonts/playfair-display/PlayfairDisplay-latin.woff2') }}") format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191,
+                U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+
+        @font-face {
+            font-family: 'Playfair Display';
+            font-style: normal;
+            font-weight: 600 700;
+            font-display: swap;
+            src: url("{{ asset('fonts/playfair-display/PlayfairDisplay-latin-ext.woff2') }}") format('woff2');
+            unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+                U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+                U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+        }
 
         :root {
             --ink: #0c1a26;
@@ -19,11 +62,8 @@
             --surface: #ffffff;
             --paper: #f4f8fb;
             --brand: #d95f18;
-            --brand-2: #0f7b8f;
-            --success: #0f8f60;
-            --danger: #c22b2b;
-            --customer-topbar-height: 52px;
-            --app-sidebar-width: 230px;
+            --app-sidebar-width: 264px;
+            --customer-topbar-height: 84px;
         }
 
         * { box-sizing: border-box; }
@@ -53,16 +93,17 @@
         .topbar {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            background: linear-gradient(180deg, #132141 100%, #f9fbfd 50%);
-            border: 1px solid #d7e2ec;
-            border-radius: 14px;
-            padding: 0.74rem 1.02rem;
+            justify-content: flex-start;
+            gap: 1.2rem;
+            background: linear-gradient(180deg, #132141 0%, #132141 100%);
+            border: 0;
+            border-radius: 0 0 40px 40px;
+            padding: 1.35rem 1.45rem 1.8rem;
             position: sticky;
-            top: 8px;
-            backdrop-filter: blur(8px);
-            z-index: 50;
+            top: 0;
+            z-index: 1200;
+            overflow: visible;
+            box-shadow: 0 6px 14px rgba(8, 21, 40, 0.14);
         }
 
         .brand {
@@ -82,6 +123,8 @@
             font-weight: 700;
             letter-spacing: 0;
             color: #ffffff;
+            margin-right: auto;
+            transform: translateY(4px);
         }
 
         .brand-accent {
@@ -92,44 +135,163 @@
         .menu {
             display: flex;
             align-items: center;
-            gap: 0.6rem;
+            gap: 0.85rem;
             flex-wrap: wrap;
+            justify-content: flex-start;
+            transform: translateY(4px);
         }
 
-        .topbar .menu a {
+        .topbar-links {
+            display: flex;
+            align-items: center;
+            gap: 1.55rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .topbar-links a {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            border: 1px solid #35506a;
-            border-radius: 12px;
-            padding: 0.58rem 1.25rem;
+            border: 0;
+            border-radius: 0;
+            padding: 0;
             font-size: 0.88rem;
             font-weight: 700;
             line-height: 1;
             text-decoration: none;
+            color: #ffffff;
+            background: transparent;
+            transition: color 0.2s ease, transform 0.2s ease;
         }
 
-        .topbar .menu .menu-login {
+        .topbar-links a:hover {
+            color: #f3cf73;
+            transform: translateY(-1px);
+        }
+
+        .topbar-help {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .topbar-help-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            border: 0;
+            border-radius: 0;
+            padding: 0;
+            background: transparent;
+            color: #ffffff;
+            font-size: 0.88rem;
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+            transition: color 0.2s ease, transform 0.2s ease;
+        }
+
+        .topbar-help-toggle:hover,
+        .topbar-help:focus-within .topbar-help-toggle {
+            color: #f3cf73;
+            transform: translateY(-1px);
+        }
+
+        .topbar-help-toggle::after {
+            content: "▾";
+            font-size: 0.78rem;
+            line-height: 1;
+        }
+
+        .topbar-help-menu {
+            position: absolute;
+            top: calc(100% + 0.55rem);
+            right: 0;
+            min-width: 210px;
+            padding: 0.55rem;
+            border: 1px solid rgba(12, 33, 55, 0.1);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 14px 32px rgba(12, 33, 55, 0.16);
+            display: grid;
+            gap: 0.28rem;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(8px);
+            transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+            z-index: 1300;
+        }
+
+        .topbar-help:hover .topbar-help-menu,
+        .topbar-help:focus-within .topbar-help-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .topbar-help-menu a {
+            display: flex;
+            align-items: center;
+            padding: 0.65rem 0.75rem;
+            border-radius: 10px;
+            background: transparent;
+            color: #10213a;
+            font-size: 0.84rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: background 0.18s ease, color 0.18s ease;
+        }
+
+        .topbar-help-menu a:hover {
+            background: #edf4fb;
+            color: #0f4e74;
+        }
+
+        .topbar-auth {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .topbar-auth a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #35506a;
+            border-radius: 999px;
+            padding: 0.56rem 1rem;
+            font-size: 0.86rem;
+            font-weight: 700;
+            line-height: 1;
+            text-decoration: none;
+            transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+        }
+
+        .topbar-auth .menu-login {
             border-color: #1c3550;
             color: #1c3550;
             background: #ffffff;
         }
 
-        .topbar .menu .menu-login:hover {
-            border-color: #0d2749;
-            color: #0d2749;
-        }
-
-        .topbar .menu .menu-register {
+        .topbar-auth .menu-register {
             border-color: #c6a647;
             background: #c6a647;
             color: #0f2947;
         }
 
-        .topbar .menu .menu-register:hover {
+        .topbar-auth .menu-login:hover {
+            border-color: #0d2749;
+            color: #0d2749;
+            transform: translateY(-1px);
+        }
+
+        .topbar-auth .menu-register:hover {
             border-color: #b8983f;
             background: #b8983f;
             color: #0f2947;
+            transform: translateY(-1px);
         }
 
         .layout-auth {
@@ -269,6 +431,62 @@
             color: #dbe8f5;
         }
 
+        .customer-sidebar .sidebar-dropdown {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .customer-sidebar .sidebar-dropdown summary {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 0.52rem;
+            border-left: 3px solid transparent;
+            padding: 0.86rem 1rem;
+            color: #a8bbcf;
+            font-size: 0.72rem;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .customer-sidebar .sidebar-dropdown summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .customer-sidebar .sidebar-dropdown summary::after {
+            content: "▾";
+            margin-left: auto;
+            font-size: 0.72rem;
+            opacity: 0.8;
+            transition: transform 0.2s ease;
+        }
+
+        .customer-sidebar .sidebar-dropdown[open] summary::after {
+            transform: rotate(180deg);
+        }
+
+        .customer-sidebar .sidebar-dropdown summary:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #dbe8f5;
+        }
+
+        .customer-sidebar .sidebar-dropdown summary.active {
+            border-left-color: #dfbf65;
+            background: rgba(255, 255, 255, 0.08);
+            color: #e8b53f;
+        }
+
+        .customer-sidebar .sidebar-dropdown-items {
+            display: grid;
+            padding: 0.2rem 0;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .customer-sidebar .sidebar-dropdown-items a {
+            padding: 0.74rem 1rem 0.74rem 2.6rem;
+            font-size: 0.71rem;
+        }
+
         .customer-sidebar .nav-count {
             margin-left: auto;
             min-width: 20px;
@@ -366,6 +584,12 @@
             padding: 0;
         }
 
+        .auth-main.customer-main > * {
+            width: min(1240px, calc(100% - 2.75rem));
+            margin-left: auto;
+            margin-right: auto;
+        }
+
         .customer-shell-topbar {
             display: flex;
             justify-content: space-between;
@@ -383,7 +607,7 @@
             border-right: 0;
             border-top: 0;
             margin-bottom: 0;
-            padding: 0.68rem 0.95rem;
+            padding: 0.48rem 0.95rem;
             min-height: var(--customer-topbar-height);
             z-index: 80;
         }
@@ -589,6 +813,32 @@
             margin-top: 0.2rem;
         }
 
+        .page-back-wrap {
+            padding: 0.22rem 1rem 0.08rem;
+        }
+
+        .page-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.38rem;
+            color: #b3b8bc;
+            text-decoration: none;
+            font-size: 0.94rem;
+            font-weight: 700;
+        }
+
+        .page-back-btn:hover {
+            color: #095999;
+            text-decoration: underline;
+        }
+
+        .page-back-btn .arrow-icon {
+            width: 18px;
+            height: 18px;
+            object-fit: contain;
+            display: inline-block;
+        }
+
         @media (max-width: 980px) {
             .layout-auth {
                 grid-template-columns: 1fr;
@@ -623,9 +873,19 @@
 
         @media (max-width: 820px) {
             .grid-2, .grid-3 { grid-template-columns: 1fr; }
-            .topbar { position: static; }
+            .topbar {
+                position: static;
+                border-radius: 0 0 26px 26px;
+                padding: 1rem 0.95rem 1.3rem;
+            }
+            .topbar .brand { margin-right: 0; }
             .menu { justify-content: flex-end; }
-            .shell { padding: 0.75rem 0.75rem 1.3rem; }
+            .topbar-links,
+            .topbar-auth {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            .shell { padding: 0 0 1.3rem; }
         }
     </style>
 </head>
@@ -637,16 +897,11 @@
         @php
             $financePendingCount = 0;
             if ($isFinance) {
-                $financePendingCount = \App\Models\Payment::where('status', 'pending')
-                    ->whereNotNull('proof_path')
-                    ->whereNotNull('destination_bank')
-                    ->whereNotNull('sender_bank_name')
-                    ->whereNotNull('sender_account_name')
-                    ->count();
+                $financePendingCount = \App\Models\Payment::where('status', 'pending')->count();
             }
         @endphp
         <div class="customer-shell-topbar">
-            <a class="brand" href="{{ route('dashboard') }}"><span class="brand-accent">PT Panji</span>Usaha Mulia</a>
+            <a class="brand" href="{{ ($isCustomer ?? auth()->user()->hasRole('customer')) ? route('home') : route('dashboard') }}"><span class="brand-accent">PT Panji</span>Usaha Mulia</a>
             <div class="customer-topbar-right">
                 <span class="customer-role-badge">
                     {{ match (strtolower((string) auth()->user()->role)) {
@@ -696,11 +951,16 @@
                     @endif
 
                     @if (($isFinance ?? (strtolower((string) auth()->user()->role) === 'finance')))
+                        <a href="{{ route('reports.orders') }}" class="{{ request()->routeIs('reports.orders') ? 'active' : '' }}">
+                            <span class="nav-ico">📋</span>
+                            <span class="nav-dot"></span>
+                            Data Pesanan
+                        </a>
                         <a href="{{ route('finance.index') }}" class="{{ request()->routeIs('finance.*') ? 'active' : '' }}">
                             <span class="nav-ico">🔍</span>
                             <span class="nav-dot"></span>
-                            Verifikasi Pembayaran
-                            <span class="nav-count">{{ $financePendingCount ?? \App\Models\Payment::where('status', 'pending')->whereNotNull('proof_path')->whereNotNull('destination_bank')->whereNotNull('sender_bank_name')->whereNotNull('sender_account_name')->count() }}</span>
+                            Data Pembayaran
+                            <span class="nav-count">{{ $financePendingCount ?? \App\Models\Payment::where('status', 'pending')->count() }}</span>
                         </a>
                         <a href="{{ route('reports.finance') }}" class="{{ request()->routeIs('reports.finance') ? 'active' : '' }}">
                             <span class="nav-ico">📊</span>
@@ -711,7 +971,7 @@
                         <a href="{{ route('finance.index') }}" class="{{ request()->routeIs('finance.*') ? 'active' : '' }}">
                             <span class="nav-ico">💰</span>
                             <span class="nav-dot"></span>
-                            Keuangan
+                            Data Pembayaran
                         </a>
                     @endif
 
@@ -719,15 +979,54 @@
                         <a href="{{ route('production.index') }}" class="{{ request()->routeIs('production.*') ? 'active' : '' }}">
                             <span class="nav-ico">🏭</span>
                             <span class="nav-dot"></span>
-                            Produksi
+                            Daftar SPK & Produksi
                         </a>
                     @endif
 
-                    @if (auth()->user()->hasRole('admin', 'manager', 'owner'))
+                    @if (auth()->user()->hasRole('admin'))
+                        <a href="{{ route('reports.orders') }}" class="{{ request()->routeIs('reports.orders') ? 'active' : '' }}">
+                            <span class="nav-ico">📊</span>
+                            <span class="nav-dot"></span>
+                            Data Pesanan
+                        </a>
+
+                        @php($adminReportOpen = request()->routeIs('reports.orders', 'reports.finance', 'reports.production'))
+                        <details class="sidebar-dropdown" {{ $adminReportOpen ? 'open' : '' }}>
+                            <summary class="{{ $adminReportOpen ? 'active' : '' }}">
+                                <span class="nav-ico">🗂️</span>
+                                <span class="nav-dot"></span>
+                                Laporan
+                            </summary>
+                            <div class="sidebar-dropdown-items">
+                                <a href="{{ route('reports.orders') }}" class="{{ request()->routeIs('reports.orders') ? 'active' : '' }}">
+                                    Laporan Pemesanan
+                                </a>
+                                <a href="{{ route('reports.finance') }}" class="{{ request()->routeIs('reports.finance') ? 'active' : '' }}">
+                                    Laporan Pembayaran (Midtrans)
+                                </a>
+                                <a href="{{ route('reports.production') }}" class="{{ request()->routeIs('reports.production') ? 'active' : '' }}">
+                                    Laporan Produksi
+                                </a>
+                            </div>
+                        </details>
+                    @elseif (auth()->user()->hasRole('manager', 'owner'))
                         <a href="{{ route('reports.orders') }}" class="{{ request()->routeIs('reports.orders') ? 'active' : '' }}">
                             <span class="nav-ico">📊</span>
                             <span class="nav-dot"></span>
                             Laporan Pemesanan
+                        </a>
+                    @endif
+
+                    @if (auth()->user()->hasRole('admin'))
+                        <a href="{{ route('admin.users.index') }}" class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                            <span class="nav-ico">👥</span>
+                            <span class="nav-dot"></span>
+                            Manajemen User
+                        </a>
+                        <a href="{{ route('admin.materials.index') }}" class="{{ request()->routeIs('admin.materials.*') ? 'active' : '' }}">
+                            <span class="nav-ico">🧶</span>
+                            <span class="nav-dot"></span>
+                            Kelola Bahan
                         </a>
                     @endif
 
@@ -765,6 +1064,16 @@
             </aside>
 
             <main class="auth-main customer-main">
+                @php($hideBackButton = request()->routeIs('home', 'login', 'register'))
+                @unless ($hideBackButton)
+                    @php($backFallback = ($isCustomer ?? auth()->user()->hasRole('customer')) ? route('home') : route('dashboard'))
+                    <div class="page-back-wrap">
+                        <a class="page-back-btn" href="{{ $backFallback }}" onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }">
+                            <img class="arrow-icon" src="{{ asset('images/leftarrow.png') }}" alt="Back">
+                            <span>Back</span>
+                        </a>
+                    </div>
+                @endunless
 
                 @if (session('success'))
                     <div class="alert alert-ok">{{ session('success') }}</div>
@@ -786,13 +1095,39 @@
     @else
         <div class="topbar">
             <a class="brand" href="{{ route('home') }}"><span class="brand-accent">PT Panji</span>Usaha Mulia</a>
-            <div class="menu">
-                <a class="menu-login" href="{{ route('login') }}">Masuk</a>
-                <a class="menu-register" href="{{ route('register') }}">Daftar</a>
+            @if (request()->routeIs('home'))
+                <div class="topbar-links" aria-label="Navigasi Landing">
+                    <a href="#home">Home</a>
+                    <a href="#about">Tentang</a>
+                    <a href="#services">Layanan</a>
+                    <a href="#testimonials">Testimoni</a>
+                </div>
+                <div class="topbar-help" aria-label="Bantuan Landing">
+                    <button type="button" class="topbar-help-toggle" aria-haspopup="true" aria-expanded="false">Bantuan</button>
+                    <div class="topbar-help-menu">
+                        <a href="#how-to-order">Cara Pemesanan</a>
+                        <a href="#faq">FAQ</a>
+                        <a href="#help-center">Pusat Bantuan</a>
+                    </div>
+                </div>
+            @endif
+
+            <div class="menu topbar-auth">
+                <a class="menu-login" href="{{ route('login') }}">Login</a>
+                <a class="menu-register" href="{{ route('register') }}">Register</a>
             </div>
         </div>
 
-        <main style="margin-top: 1rem;">
+        <main style="margin-top: {{ request()->routeIs('home') ? '0' : '0.35rem' }};">
+            @unless (request()->routeIs('home', 'login', 'register'))
+                <div class="page-back-wrap" style="padding-left: 0; padding-right: 0;">
+                    <a class="page-back-btn" href="{{ route('home') }}" onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }">
+                        <img class="arrow-icon" src="{{ asset('images/leftarrow.png') }}" alt="Back">
+                        <span>Back</span>
+                    </a>
+                </div>
+            @endunless
+
             @if (session('success'))
                 <div class="alert alert-ok">{{ session('success') }}</div>
             @endif

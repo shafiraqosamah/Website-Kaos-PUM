@@ -10,7 +10,7 @@
         background: #ffffff;
         border: 1px solid #d9e2ea;
         border-radius: 14px;
-        padding: 1.25rem 1.35rem 1.35rem;
+        padding: 1.5rem 2rem 1.5rem;
     }
 
     .finance-header h1 {

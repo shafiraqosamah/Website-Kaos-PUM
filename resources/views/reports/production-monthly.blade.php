@@ -39,6 +39,7 @@
             <thead>
                 <tr>
                     <th>Jenis Produksi</th>
+                    <th>Produk</th>
                     <th>Order</th>
                     <th>Total PCS</th>
                 </tr>
@@ -47,11 +48,12 @@
                 @forelse($productionByType as $row)
                     <tr>
                         <td>{{ $row['production_type'] ?: '-' }}</td>
+                        <td>{{ $row['product_model'] ?? '-' }}</td>
                         <td>{{ $row['total_orders'] }}</td>
                         <td>{{ number_format($row['total_pcs'], 0, ',', '.') }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="3" class="muted">Belum ada data produksi.</td></tr>
+                    <tr><td colspan="4" class="muted">Belum ada data produksi.</td></tr>
                 @endforelse
             </tbody>
         </table>

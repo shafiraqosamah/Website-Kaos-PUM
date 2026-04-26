@@ -16,6 +16,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(MasterDataSeeder::class);
+
         $seedUsers = [
             ['name' => 'Admin Utama', 'email' => 'admin@panjium.com', 'role' => User::ROLE_ADMIN],
             ['name' => 'Tim Keuangan', 'email' => 'finance@panjium.com', 'role' => User::ROLE_FINANCE],

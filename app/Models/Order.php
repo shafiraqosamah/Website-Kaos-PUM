@@ -32,6 +32,10 @@ class Order extends Model
         'remaining_amount',
         'payment_status',
         'order_status',
+        'admin_verification_status',
+        'admin_verification_note',
+        'admin_verified_by',
+        'admin_verified_at',
         'notes',
     ];
 
@@ -43,12 +47,18 @@ class Order extends Model
             'subtotal' => 'decimal:2',
             'dp_amount' => 'decimal:2',
             'remaining_amount' => 'decimal:2',
+            'admin_verified_at' => 'datetime',
         ];
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function adminVerifiedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'admin_verified_by');
     }
 
     public function sizes(): HasMany
