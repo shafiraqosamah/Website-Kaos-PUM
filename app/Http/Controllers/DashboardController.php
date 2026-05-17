@@ -19,8 +19,14 @@ class DashboardController extends Controller
             $inProgressOrders = Order::where('user_id', $user->id)
                 ->whereIn('order_status', ['submitted', 'pending_verification', 'verified_payment', 'verified_dp', 'in_production', 'finishing_waiting_settlement'])
                 ->count();
-            $waitingPaymentOrders = Order::where('user_id', $user->id)
-                ->whereIn('order_status', ['submitted', 'pending_verification'])
+            $pendingVerificationOrdersCount = Order::where('user_id', $user->id)
+                ->where('order_status', 'submitted')
+                ->where('admin_verification_status', 'pending')
+                ->count();
+
+            $pendingPaymentOrdersCount = Order::where('user_id', $user->id)
+                ->where('order_status', 'submitted')
+                ->where('admin_verification_status', 'verified')
                 ->whereHas('payments', static function ($query): void {
                     $query->where('status', 'pending');
                 })
@@ -88,7 +94,8 @@ class DashboardController extends Controller
             return view('dashboard.customer', compact(
                 'totalOrders',
                 'inProgressOrders',
-                'waitingPaymentOrders',
+                'pendingVerificationOrdersCount',
+                'pendingPaymentOrdersCount',
                 'dueWaitingPaymentOrder',
                 'waitingPaymentAlertCount',
                 'dueRevisionOrder',
@@ -139,7 +146,18 @@ class DashboardController extends Controller
                 ->take(10)
                 ->get();
 
-            return view('dashboard.production', compact('activeOrders', 'waitingSettlement', 'activeOrdersWithSteps', 'finishingWaitingSettlement'));
+            $newProductionOrders = Order::where('order_status', 'verified_payment')->get();
+            
+            $readyForFinishingOrders = Order::where('order_status', 'in_production')
+                ->where('payment_type', 'dp')
+                ->where('remaining_amount', 0)
+                ->whereHas('productionSteps', function ($query) {
+                    $query->where('step_name', 'Finishing')
+                          ->whereIn('status', ['pending', 'in_progress']);
+                })
+                ->get();
+
+            return view('dashboard.production', compact('activeOrders', 'waitingSettlement', 'activeOrdersWithSteps', 'finishingWaitingSettlement', 'newProductionOrders', 'readyForFinishingOrders'));
         }
 
         $pendingOrderVerification = Order::where('admin_verification_status', 'pending')->count();
@@ -152,6 +170,39 @@ class DashboardController extends Controller
             'completed' => Order::where('order_status', 'completed')->count(),
         ];
 
-        return view('dashboard.management', compact('summary', 'pendingOrderVerification', 'productionWaitingVerification'));
+        $pendingVerificationOrders = Order::with('user')
+            ->where('admin_verification_status', 'pending')
+            ->latest()
+            ->take(10)
+            ->get();
+
+        $pendingPayments = Payment::with(['order', 'order.user'])
+            ->where('status', 'pending')
+            ->whereNotNull('proof_path')
+            ->latest()
+            ->take(10)
+            ->get();
+
+        $activeProductionOrders = Order::with(['user', 'productionSteps', 'workOrder'])
+            ->whereIn('order_status', ['verified_payment', 'in_production', 'finishing_waiting_settlement', 'production_done_waiting_admin', 'ready_for_pickup'])
+            ->latest()
+            ->take(10)
+            ->get();
+
+        $completedOrders = Order::with(['user', 'payments'])
+            ->where('order_status', 'completed')
+            ->latest()
+            ->take(20)
+            ->get();
+
+        return view('dashboard.management', compact(
+            'summary', 
+            'pendingOrderVerification', 
+            'productionWaitingVerification',
+            'pendingVerificationOrders',
+            'pendingPayments',
+            'activeProductionOrders',
+            'completedOrders'
+        ));
     }
 }

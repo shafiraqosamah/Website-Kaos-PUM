@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('header_title', 'Riwayat Pesanan')
+
 @section('content')
 @php
     $statusClass = function (string $status): string {
@@ -10,19 +12,22 @@
             'verified', 'verified_payment', 'verified_dp', 'fully_paid', 'ready_for_pickup', 'completed', 'done' => 'status-success',
             'rejected' => 'status-danger',
             'in_production', 'in_progress' => 'status-info',
-            'finishing_waiting_settlement' => 'status-accent',
+            'finishing_waiting_settlement' => 'status-warning',
+            'held_waiting_settlement', 'cancelled' => 'status-danger',
             default => 'status-neutral',
         };
     };
 
     $statusLabel = function (string $status): string {
         return match ($status) {
-            'submitted' => 'Menunggu Verifikasi Admin',
+            'submitted' => 'Menunggu Verifikasi Admin (Max 2x24 Jam)',
             'admin_verified_waiting_payment' => 'Terverifikasi',
             'production_done_waiting_admin' => 'Selesai Produksi',
             'verified_payment', 'verified_dp' => 'Menunggu Produksi',
             'in_production', 'in_progress' => 'Sedang Proses',
-            'finishing_waiting_settlement' => 'Menunggu Pelunasan',
+            'finishing_waiting_settlement' => 'Menunggu Pelunasan (Max 2x24 Jam)',
+            'held_waiting_settlement' => 'Status Ditahan',
+            'cancelled' => 'Dibatalkan',
             'ready_for_pickup' => 'Pesanan Siap Ambil',
             'completed', 'done' => 'Pesanan Selesai',
             'rejected' => 'Rejected',
@@ -31,11 +36,13 @@
     };
 
     $latestPayment = $order->payments->sortByDesc('id')->first();
+    $isHeld = $order->order_status === 'finishing_waiting_settlement' && $order->payment_deadline_at && \Carbon\Carbon::now()->isAfter($order->payment_deadline_at);
+
     $statusForDisplay = ($latestPayment?->status === 'rejected')
         ? 'rejected'
         : (($order->order_status === 'submitted' && (string) ($order->admin_verification_status ?? 'pending') === 'verified')
             ? 'admin_verified_waiting_payment'
-            : $order->order_status);
+            : ($isHeld ? 'held_waiting_settlement' : $order->order_status));
 
     $timelineStepName = function (string $name): ?string {
         $normalized = strtolower(trim($name));
@@ -492,6 +499,24 @@
 </style>
 
 <div class="card">
+    @if ($statusForDisplay === 'cancelled')
+        <div class="settlement-alert" style="background: linear-gradient(135deg, #b53025, #c73729); margin-top:0; margin-bottom:1rem;">
+            <div>
+                <h4>Pesanan Dibatalkan</h4>
+                <p>{{ $order->admin_verification_note ?: 'Pesanan dibatalkan karena melewati batas waktu yang ditentukan.' }}</p>
+            </div>
+            <a href="https://wa.me/6281234567890" class="btn" style="background:#fff; color:#b53025; font-weight:700;">Hubungi CS</a>
+        </div>
+    @elseif ($statusForDisplay === 'held_waiting_settlement')
+        <div class="settlement-alert" style="background: linear-gradient(135deg, #d97706, #f59e0b); margin-top:0; margin-bottom:1rem;">
+            <div>
+                <h4>Status Ditahan (Menunggu Pelunasan)</h4>
+                <p>Pesanan telah melewati batas waktu pelunasan (2x24 Jam). Proses finishing <strong>ditahan sementara</strong>. Segera lakukan pelunasan agar pesanan dapat dilanjutkan.</p>
+            </div>
+            <a href="https://wa.me/6281234567890" class="btn" style="background:#fff; color:#d97706; font-weight:700;">Konfirmasi via WhatsApp</a>
+        </div>
+    @endif
+
     <div style="display:flex; justify-content:space-between; align-items:start; gap:1rem; flex-wrap:wrap; margin-bottom:1.2rem;">
         <div>
             <h1 style="margin-bottom:0.3rem;">{{ $order->order_code }}</h1>
@@ -526,7 +551,7 @@
                 </div>
                 <div class="spec-item">
                     <p class="spec-label">Warna Dominan</p>
-                    <p class="spec-value">{{ $order->dominant_color }}</p>
+                    <p class="spec-value">{{ $order->dominant_color }}{{ $order->secondary_color ? ' / ' . $order->secondary_color : '' }}</p>
                 </div>
                 <div class="spec-item">
                     <p class="spec-label">Total Pcs</p>
@@ -635,7 +660,7 @@
                     @csrf
                     <button class="btn btn-danger" type="submit">Lakukan Pelunasan Sekarang</button>
                 </form>
-                <p class="muted" style="margin-bottom:0; margin-top:0.6rem;">Produksi tidak dapat diselesaikan sebelum pelunasan diverifikasi.</p>
+                <p class="muted" style="margin-bottom:0; margin-top:0.6rem;">Tahapan finishing tidak dapat dilakukan sebelum pelunasan terverifikasi.</p>
             @endif
         </div>
     @endif
@@ -717,7 +742,7 @@
         <div class="settlement-alert">
             <div>
                 <h4>Lakukan Pelunasan Sekarang!</h4>
-                <p>Pesanan Anda memasuki tahap finishing. Proses tidak akan dilanjutkan sampai pelunasan dikonfirmasi.<br>Sisa: <strong>Rp {{ number_format((float) $order->remaining_amount, 0, ',', '.') }}</strong></p>
+                <p>Pesanan Anda telah mencapai tahap Steam & Pressing. Tahapan finishing tidak dapat dilakukan sebelum pelunasan terverifikasi.<br>Sisa: <strong>Rp {{ number_format((float) $order->remaining_amount, 0, ',', '.') }}</strong></p>
             </div>
             <form method="POST" action="{{ route('customer.orders.settlement', $order) }}" style="margin:0;">
                 @csrf

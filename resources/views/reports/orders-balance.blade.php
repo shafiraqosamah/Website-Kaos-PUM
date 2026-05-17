@@ -1,23 +1,8 @@
 @extends('layouts.app')
 
-@section('content')
-@php
-    $verificationLabel = static function (?string $status): string {
-        return match ($status) {
-            'verified' => 'Terverifikasi',
-            'revision_requested' => 'Ajukan Kembali',
-            default => 'Menunggu Verifikasi',
-        };
-    };
+@section('header_title', 'Data Pemesanan')
 
-    $verificationClass = static function (?string $status): string {
-        return match ($status) {
-            'verified' => 'status-success',
-            'revision_requested' => 'status-danger',
-            default => 'status-warning',
-        };
-    };
-@endphp
+@section('content')
 
 <style>
     .orders-control-page {
@@ -147,8 +132,13 @@
         background: #fbfdff;
     }
 
-    .orders-table .status-col {
+    .orders-table th.status-col,
+    .orders-table td.status-col {
         text-align: center;
+    }
+
+    .orders-table .status-pill {
+        white-space: nowrap;
     }
 
     .orders-table .status-col .muted-mini {
@@ -281,6 +271,13 @@
         width: auto;
         min-width: 0;
         align-self: center;
+        background: #ffffff;
+        border: 1px solid #d9e2ec;
+        color: #49637a;
+    }
+
+    .action-buttons .action-detail:hover {
+        background: #f3f7fb;
     }
 
     .action-buttons .action-stack {
@@ -328,13 +325,7 @@
             <h1>Data Pesanan Pelanggan</h1>
             <p>Kontrol pesanan pelanggan dengan kesediaan</p>
         </div>
-        <form method="GET" action="{{ route('reports.orders') }}" class="month-form">
-            <div>
-                <label for="month" style="margin-bottom:0.2rem;">Pilih Bulan</label>
-                <input id="month" type="month" name="month" value="{{ $monthInput }}">
-            </div>
-            <button class="btn btn-brand" type="submit">Tampilkan</button>
-        </form>
+
     </div>
 
     <div class="stats-grid">
@@ -352,6 +343,7 @@
         </div>
     </div>
 
+    <h3 style="margin-top: 1.5rem; color: #0d2749; font-family: 'Playfair Display', serif;">Menunggu Verifikasi & Revisi</h3>
     <div class="orders-table-card">
         <table class="orders-table">
             <thead>
@@ -360,6 +352,7 @@
                     <th>No. Order</th>
                     <th>Pemesan</th>
                     <th>Tanggal Pesan</th>
+                    <th>Estimasi Selesai</th>
                     <th>Jumlah PCS</th>
                     <th>Total Harga</th>
                     <th>Produk</th>
@@ -368,12 +361,12 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse ($orders as $order)
+                @forelse ($pendingOrders as $order)
                     @php
                         $status = (string) ($order->admin_verification_status ?: 'pending');
                     @endphp
                     <tr>
-                        <td>{{ ($orders->firstItem() ?? 1) + $loop->index }}</td>
+                        <td>{{ ($pendingOrders->firstItem() ?? 1) + $loop->index }}</td>
                         <td>
                             <strong>{{ $order->order_code }}</strong>
                         </td>
@@ -383,11 +376,17 @@
                             <div>{{ $order->user->phone ?? '-' }}</div>
                         </td>
                         <td>{{ $order->created_at?->format('d/m/Y H:i') }}</td>
+                        <td>{{ $order->estimated_finish_date ? \Carbon\Carbon::parse($order->estimated_finish_date)->format('d/m/Y') : '-' }}</td>
                         <td>{{ number_format((int) $order->total_pcs, 0, ',', '.') }} pcs</td>
                         <td>Rp {{ number_format((float) $order->subtotal, 0, ',', '.') }}</td>
                         <td>{{ $order->product_name ?: ($order->product_model ?: '-') }}</td>
                         <td class="status-col">
-                            <span class="status-pill {{ $verificationClass($status) }}">{{ $verificationLabel($status) }}</span>
+                            @php
+                                $resolvedStatus = \App\Support\OrderStatusPresenter::resolveForCustomer($order, $order->payments->last());
+                                $statusClass = \App\Support\OrderStatusPresenter::customerClass($resolvedStatus);
+                                $statusLabel = \App\Support\OrderStatusPresenter::customerLabel($resolvedStatus);
+                            @endphp
+                            <span class="status-pill {{ $statusClass }}">{{ $statusLabel }}</span>
                             @if ($order->admin_verification_note)
                                 <div class="muted-mini note-preview">Catatan: {{ $order->admin_verification_note }}</div>
                                 <button
@@ -402,7 +401,7 @@
                         </td>
                         <td>
                             <div class="action-buttons">
-                                <a class="btn btn-outline btn-xs action-detail" href="{{ route('reports.orders.show', ['order' => $order, 'month' => request('month')]) }}">Detail</a>
+                                <a class="btn btn-xs action-detail" href="{{ route('reports.orders.show', ['order' => $order, 'month' => request('month')]) }}">Detail</a>
                                 @if ($status !== 'verified')
                                     <div class="action-stack">
                                         <a class="btn btn-brand btn-xs" href="{{ route('reports.orders.show', ['order' => $order, 'month' => request('month')]) }}#verify-section">Verifikasi</a>
@@ -414,16 +413,93 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="muted">Belum ada data pesanan pada bulan ini.</td>
+                        <td colspan="10" class="muted">Tidak ada pesanan yang menunggu verifikasi.</td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 
-    @if ($orders->hasPages())
+    @if ($pendingOrders->hasPages())
         <div style="margin-top:0.8rem;">
-            {{ $orders->links() }}
+            {{ $pendingOrders->links() }}
+        </div>
+    @endif
+
+    <h3 style="margin-top: 2rem; color: #0d2749; font-family: 'Playfair Display', serif;">Pesanan Terverifikasi</h3>
+    <div class="orders-table-card">
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>No. Order</th>
+                    <th>Pemesan</th>
+                    <th>Tanggal Pesan</th>
+                    <th>Estimasi Selesai</th>
+                    <th>Jumlah PCS</th>
+                    <th>Total Harga</th>
+                    <th>Produk</th>
+                    <th class="status-col">Status</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($verifiedOrders as $order)
+                    @php
+                        $status = 'verified';
+                    @endphp
+                    <tr>
+                        <td>{{ ($verifiedOrders->firstItem() ?? 1) + $loop->index }}</td>
+                        <td>
+                            <strong>{{ $order->order_code }}</strong>
+                        </td>
+                        <td>
+                            <div><strong>{{ $order->customer_name ?: ($order->user->name ?? '-') }}</strong></div>
+                            <div>{{ $order->user->email ?? '-' }}</div>
+                            <div>{{ $order->user->phone ?? '-' }}</div>
+                        </td>
+                        <td>{{ $order->created_at?->format('d/m/Y H:i') }}</td>
+                        <td>{{ $order->estimated_finish_date ? \Carbon\Carbon::parse($order->estimated_finish_date)->format('d/m/Y') : '-' }}</td>
+                        <td>{{ number_format((int) $order->total_pcs, 0, ',', '.') }} pcs</td>
+                        <td>Rp {{ number_format((float) $order->subtotal, 0, ',', '.') }}</td>
+                        <td>{{ $order->product_name ?: ($order->product_model ?: '-') }}</td>
+                        <td class="status-col">
+                            @php
+                                $resolvedStatus = \App\Support\OrderStatusPresenter::resolveForCustomer($order, $order->payments->last());
+                                $statusClass = \App\Support\OrderStatusPresenter::customerClass($resolvedStatus);
+                                $statusLabel = \App\Support\OrderStatusPresenter::customerLabel($resolvedStatus);
+                            @endphp
+                            <span class="status-pill {{ $statusClass }}">{{ $statusLabel }}</span>
+                            @if ($order->admin_verification_note)
+                                <div class="muted-mini note-preview">Catatan: {{ $order->admin_verification_note }}</div>
+                                <button
+                                    type="button"
+                                    class="note-open-btn"
+                                    data-note-order="{{ $order->order_code }}"
+                                    data-note-text="{{ $order->admin_verification_note }}"
+                                >
+                                    Lihat Catatan
+                                </button>
+                            @endif
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a class="btn btn-xs action-detail" href="{{ route('reports.orders.show', ['order' => $order, 'month' => request('month')]) }}">Detail</a>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="10" class="muted">Belum ada data pesanan yang terverifikasi.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    @if ($verifiedOrders->hasPages())
+        <div style="margin-top:0.8rem;">
+            {{ $verifiedOrders->links() }}
         </div>
     @endif
 </section>

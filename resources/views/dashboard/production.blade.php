@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('header_title', 'Dashboard')
+
 @section('content')
 @php
     $settlementRisk = $waitingSettlement > 0;
@@ -471,6 +473,34 @@
         <p>Monitor semua pekerjaan konveksi yang sedang berjalan</p>
     </div>
 
+<!-- New Production Jobs Alert -->
+@if($newProductionOrders->count() > 0)
+    <div class="finishing-alert" style="background: linear-gradient(135deg, #eef7ff 0%, #e6f3ff 100%); border-color: #b8deff;">
+        <div class="finishing-alert-icon">🔔</div>
+        <div class="finishing-alert-content">
+            <p class="finishing-alert-text" style="color: #0c4a7e;">
+                Ada <span class="finishing-alert-count" style="color: #083c6b;">{{ $newProductionOrders->count() }} pesanan baru</span> yang sudah diverifikasi pembayarannya dan <strong>siap untuk mulai diproduksi</strong> 
+                (Order: {{ $newProductionOrders->take(3)->pluck('order_code')->implode(', ') }}{{ $newProductionOrders->count() > 3 ? ', dll' : '' }}).
+                <a href="#progress-produksi" style="color: #0c7fb6; font-weight: bold; text-decoration: underline; margin-left: 0.5rem;">Lihat Surat Perintah Kerja →</a>
+            </p>
+        </div>
+    </div>
+@endif
+
+<!-- Ready for Finishing (Settled) Alert -->
+@if($readyForFinishingOrders->count() > 0)
+    <div class="finishing-alert" style="background: linear-gradient(135deg, #eff9f1 0%, #e5f6e8 100%); border-color: #b5e8c1;">
+        <div class="finishing-alert-icon">✅</div>
+        <div class="finishing-alert-content">
+            <p class="finishing-alert-text" style="color: #12572b;">
+                Terdapat <span class="finishing-alert-count" style="color: #0e4421;">{{ $readyForFinishingOrders->count() }} pesanan</span> yang pelunasannya sudah dikonfirmasi. Silakan <strong>lanjut selesaikan tahap Finishing</strong>
+                (Order: {{ $readyForFinishingOrders->take(3)->pluck('order_code')->implode(', ') }}{{ $readyForFinishingOrders->count() > 3 ? ', dll' : '' }}).
+                <a href="#progress-produksi" style="color: #0f8f60; font-weight: bold; text-decoration: underline; margin-left: 0.5rem;">Lihat Surat Perintah Kerja →</a>
+            </p>
+        </div>
+    </div>
+@endif
+
 <!-- Finishing Settlement Alert -->
 @if($finishingWaitingSettlement > 0)
     <div class="finishing-alert">
@@ -504,7 +534,7 @@
     </div>
 
 <!-- SPK Production Dashboard -->
-<div class="spk-dashboard-section">
+<div class="spk-dashboard-section" id="progress-produksi">
     <div class="spk-section-header">
         <h2 class="spk-dashboard-title">SPK Aktif (Sedang Dikerjakan)</h2>
         <a href="{{ route('production.index') }}" class="view-all-spk-btn">Lihat Semua SPK →</a>
@@ -557,6 +587,9 @@
                         </div>
                         <div class="spk-order-info">
                             {{ $order->product_name }} ({{ $order->total_pcs }} pcs)
+                            @if($order->estimated_finish_date)
+                                <br><span style="color: #d95f18; font-weight: 700;">Estimasi Selesai: {{ \Carbon\Carbon::parse($order->estimated_finish_date)->format('d M Y') }}</span>
+                            @endif
                         </div>
                     </div>
                     <div class="spk-status-actions">

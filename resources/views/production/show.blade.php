@@ -172,6 +172,15 @@
         border-top-color: #d95f18;
     }
 
+    .production-spk-link {
+     margin: 0 0 0.35rem;
+        font-size: clamp(1.18rem, 1.8vw, 1.2rem);
+        line-height: 1.08;
+        color: #0f2e56;
+        font-family: 'Playfair Display', serif;
+        font-weight: 700;
+    }
+
     .prod-track {
         width: 100%;
         height: 10px;
@@ -487,9 +496,12 @@
         <div>
             <h1>Progress Produksi {{ $order->order_code }}</h1>
             <p class="muted" style="margin:0;">SPK: {{ $order->workOrder?->spk_number ?? '-' }} | Pelanggan: {{ $order->user->name }}</p>
+            @if($order->estimated_finish_date)
+                <p class="muted" style="margin:0.3rem 0 0; color:#d95f18; font-weight:700;">Estimasi Selesai: {{ \Carbon\Carbon::parse($order->estimated_finish_date)->format('d M Y') }}</p>
+            @endif
         </div>
         @if($order->workOrder)
-            <a class="btn btn-alt" href="{{ route('production.spk', $order) }}" target="_blank">📄 Dokumen SPK</a>
+            <a class="btn btn-alt production-spk-link" href="{{ route('production.spk', $order) }}" target="_blank">📝 Dokumen SPK</a>
         @endif
     </div>
 
@@ -565,6 +577,7 @@
                             @else
                                 @php($isStepDone = $stepData['status'] === 'done')
                                 @php($isStepPending = $stepData['status'] === 'pending')
+                                @php($isFinishingStep = strtolower(trim($stepData['title'])) === 'finishing')
                                 <div class="prod-step-actions">
                                     <form method="POST" action="{{ route('production.step.update', [$order, $stepData['step']]) }}">
                                         @csrf
@@ -575,13 +588,13 @@
                                     <form method="POST" action="{{ route('production.step.update', [$order, $stepData['step']]) }}">
                                         @csrf
                                         <input type="hidden" name="status" value="in_progress">
-                                        <button type="submit" class="step-btn {{ $stepData['status'] === 'in_progress' ? 'is-active in-progress' : '' }}" {{ $isStepDone ? 'disabled' : '' }}>Sedang Dikerjakan</button>
+                                        <button type="submit" class="step-btn {{ $stepData['status'] === 'in_progress' ? 'is-active in-progress' : '' }}" {{ $isStepDone || ($isFinishingStep && $order->order_status === 'finishing_waiting_settlement') ? 'disabled' : '' }}>Sedang Dikerjakan</button>
                                     </form>
 
                                     <form method="POST" action="{{ route('production.step.update', [$order, $stepData['step']]) }}">
                                         @csrf
                                         <input type="hidden" name="status" value="done">
-                                        <button type="submit" class="step-btn {{ $stepData['status'] === 'done' ? 'is-active done' : '' }}" {{ $isStepDone || $isStepPending ? 'disabled' : '' }}>Selesai</button>
+                                        <button type="submit" class="step-btn {{ $stepData['status'] === 'done' ? 'is-active done' : '' }}" {{ $isStepDone || $isStepPending || ($isFinishingStep && $order->order_status === 'finishing_waiting_settlement') ? 'disabled' : '' }}>Selesai</button>
                                     </form>
                                 </div>
                             @endif
@@ -596,9 +609,9 @@
         <div class="production-settlement-alert">
             <div>
                 <h4>Menunggu Pelunasan Pelanggan</h4>
-                <p>Tahap finishing tidak dapat ditandai selesai sebelum pelunasan terverifikasi.</p>
+                <p>Tahapan finishing tidak dapat dilakukan sebelum pelunasan terverifikasi.</p>
             </div>
-            <span class="production-settlement-alert-note">Status Ditahan Sampai Lunas</span>
+            <span class="production-settlement-alert-note">Finishing Menunggu Pelunasan</span>
         </div>
     @endif
 

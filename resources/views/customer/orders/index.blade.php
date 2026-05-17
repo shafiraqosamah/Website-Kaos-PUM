@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('header_title', request('focus') === 'status' ? 'Status Produksi' : 'Riwayat Pesanan')
+
 @section('content')
 @php
     $isStatusFocus = request('focus') === 'status';
@@ -555,7 +557,7 @@
     <div class="card production-status-card">
         <div class="production-status-head">
             <h2>Status Produksi</h2>
-            <p>Pantau perkembangan pesanan Anda secara real-time</p>
+            <p>Pantau perkembangan status produksi pesanan Anda</p>
         </div>
 
         @php
@@ -662,7 +664,7 @@
                         <div class="settlement-alert">
                             <div>
                                 <h4>🔔 Lakukan Pelunasan Sekarang!</h4>
-                                <p>Pesanan Anda memasuki tahap finishing. Proses tidak akan dilanjutkan sampai pelunasan dikonfirmasi.<br>Sisa: <strong>Rp {{ number_format((float) $order->remaining_amount, 0, ',', '.') }}</strong></p>
+                                <p>Pesanan Anda telah mencapai tahap Steam & Pressing. Tahapan finishing tidak dapat dilakukan sebelum pelunasan terverifikasi.<br>Sisa: <strong>Rp {{ number_format((float) $order->remaining_amount, 0, ',', '.') }}</strong></p>
                             </div>
                             <form method="POST" action="{{ route('customer.orders.settlement', $order) }}" style="margin:0;">
                                 @csrf
@@ -780,6 +782,7 @@
                             <th>No</th>
                             <th>Nomor Order</th>
                             <th>Tanggal Pemesanan</th>
+                            <th style="white-space: nowrap;">Estimasi Selesai</th>
                             <th>Jenis Produk</th>
                             <th>Total PCS</th>
                             <th>Total Harga</th>
@@ -862,6 +865,7 @@
                                     <a href="{{ route('customer.orders.show', $order) }}">{{ $order->order_code }}</a>
                                 </td>
                                 <td>{{ $order->created_at?->format('d/m/Y H:i') }}</td>
+                                <td>{{ $order->estimated_finish_date ? \Carbon\Carbon::parse($order->estimated_finish_date)->format('d/m/Y') : '-' }}</td>
                                 <td>{{ $order->product_name ?: ($order->product_model ?: '-') }}</td>
                                 <td>{{ number_format((int) $order->total_pcs, 0, ',', '.') }}</td>
                                 <td>Rp {{ number_format((float) $order->subtotal, 0, ',', '.') }}</td>
@@ -872,7 +876,7 @@
                                     @if ($latestVerifiedPayment)
                                         <span class="payment-pill {{ $paymentMethodClass }}">{{ $paymentMethodLabel }}</span>
                                     @elseif ($isWaitingPayment)
-                                        <span class="payment-waiting-text">Menunggu Pembayaran</span>
+                                        <span class="payment-waiting-text">Menunggu Pembayaran (Max 2x24 Jam)</span>
                                     @else
                                         -
                                     @endif
@@ -974,6 +978,7 @@
                                 <th>No</th>
                                 <th>Nomor Order</th>
                                 <th>Tanggal Pemesanan</th>
+                                <th style="white-space: nowrap;">Estimasi Selesai</th>
                                 <th>Jenis Produk</th>
                                 <th>Total PCS</th>
                                 <th>Total Harga</th>
@@ -997,6 +1002,7 @@
                                     <td>{{ $loop->iteration }}</td>
                                     <td class="order-code"><a href="{{ route('customer.orders.show', $order) }}">{{ $order->order_code }}</a></td>
                                     <td>{{ $order->created_at?->format('d/m/Y H:i') }}</td>
+                                    <td>{{ $order->estimated_finish_date ? \Carbon\Carbon::parse($order->estimated_finish_date)->format('d/m/Y') : '-' }}</td>
                                     <td>{{ $order->product_name ?: ($order->product_model ?: '-') }}</td>
                                     <td>{{ number_format((int) $order->total_pcs, 0, ',', '.') }}</td>
                                     <td>Rp {{ number_format((float) $order->subtotal, 0, ',', '.') }}</td>

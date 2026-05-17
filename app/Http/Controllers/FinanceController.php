@@ -9,14 +9,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
+use App\Mail\PaymentRejectedMail;
+use App\Mail\OrderFullyPaidMail;
 use Midtrans\Config;
 use Midtrans\Transaction;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FinanceController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->syncMidtransPayments();
 
@@ -35,17 +38,35 @@ class FinanceController extends Controller
                     // Midtrans entries: no manual proof fields required.
                     ->orWhereNotNull('midtrans_order_id');
             })
+            ->when($request->search, function ($query) use ($request) {
+                $query->whereHas('order', function ($q) use ($request) {
+                    $q->where('order_code', 'like', "%{$request->search}%")
+                      ->orWhere('customer_name', 'like', "%{$request->search}%");
+                });
+            })
             ->latest()
             ->get();
 
         $verifiedPayments = Payment::with('order.user')
             ->where('status', 'verified')
+            ->when($request->search, function ($query) use ($request) {
+                $query->whereHas('order', function ($q) use ($request) {
+                    $q->where('order_code', 'like', "%{$request->search}%")
+                      ->orWhere('customer_name', 'like', "%{$request->search}%");
+                });
+            })
             ->latest('verified_at')
             ->take(20)
             ->get();
 
         $rejectedPayments = Payment::with('order.user')
             ->where('status', 'rejected')
+            ->when($request->search, function ($query) use ($request) {
+                $query->whereHas('order', function ($q) use ($request) {
+                    $q->where('order_code', 'like', "%{$request->search}%")
+                      ->orWhere('customer_name', 'like', "%{$request->search}%");
+                });
+            })
             ->latest('verified_at')
             ->take(50)
             ->get();
@@ -195,6 +216,10 @@ class FinanceController extends Controller
                     'verified_at' => now(),
                     'notes' => $mergedNotes,
                 ]);
+                
+                if ($order->user && $order->user->email) {
+                    Mail::to($order->user->email)->send(new PaymentRejectedMail($order, $payment));
+                }
 
                 return;
             }
@@ -218,6 +243,10 @@ class FinanceController extends Controller
                     'payment_status' => 'fully_paid',
                     'order_status' => 'in_production',
                 ]);
+                
+                if ($order->user && $order->user->email) {
+                    Mail::to($order->user->email)->send(new OrderFullyPaidMail($order, $payment));
+                }
 
                 return;
             }
@@ -228,6 +257,10 @@ class FinanceController extends Controller
                     'remaining_amount' => 0,
                     'order_status' => 'verified_payment',
                 ]);
+                
+                if ($order->user && $order->user->email) {
+                    Mail::to($order->user->email)->send(new OrderFullyPaidMail($order, $payment));
+                }
             } else {
                 $order->update([
                     'payment_status' => 'verified_dp',

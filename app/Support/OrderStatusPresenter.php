@@ -31,14 +31,15 @@ class OrderStatusPresenter
     public static function customerClass(string $status): string
     {
         return match ($status) {
-            'submitted', 'pending_verification', 'verified_payment', 'verified_dp' => 'status-warning',
-            'admin_verified_waiting_payment' => 'status-success',
-            'revision_requested' => 'status-danger',
-            'production_done_waiting_admin', 'in_production' => 'status-info',
-            'finishing_waiting_settlement' => 'status-accent',
-            'ready_for_pickup' => 'status-warning',
-            'completed' => 'status-success',
-            'rejected' => 'status-danger',
+            'submitted' => 'status-warning',
+            'admin_verified_waiting_payment' => 'status-teal',
+            'revision_requested', 'rejected' => 'status-danger',
+            'pending_verification' => 'status-warning',
+            'verified_payment', 'verified_dp' => 'status-accent',
+            'in_production' => 'status-primary',
+            'production_done_waiting_admin' => 'status-teal',
+            'finishing_waiting_settlement' => 'status-danger',
+            'ready_for_pickup', 'completed', 'done' => 'status-success',
             default => 'status-neutral',
         };
     }
@@ -46,17 +47,17 @@ class OrderStatusPresenter
     public static function customerLabel(string $status): string
     {
         return match ($status) {
-            'submitted' => 'Menunggu Verifikasi Admin',
-            'admin_verified_waiting_payment' => 'Terverifikasi',
-            'revision_requested' => 'Menunggu Persetujuan Perubahan',
-            'pending_verification' => 'Menunggu Pembayaran',
+            'submitted' => 'Menunggu Verifikasi Admin (Max 2x24 Jam)',
+            'admin_verified_waiting_payment' => 'Pesanan Terverifikasi',
+            'revision_requested' => 'Pengajuan Kembali (Max 2x24 Jam)',
+            'pending_verification' => 'Menunggu Pembayaran DP (Max 2x24 Jam)',
             'verified_payment', 'verified_dp' => 'Menunggu Produksi',
             'production_done_waiting_admin' => 'Selesai Produksi',
             'in_production' => 'Sedang Proses',
-            'finishing_waiting_settlement' => 'Menunggu Bayar',
+            'finishing_waiting_settlement' => 'Menunggu Pelunasan (Max 2x24 Jam)',
             'ready_for_pickup' => 'Pesanan Siap Ambil',
-            'completed', 'done' => 'Pesanan Sudah Diambil',
-            'rejected' => 'Rejected',
+            'completed', 'done' => 'Selesai',
+            'rejected' => 'Ditolak',
             default => ucfirst(str_replace('_', ' ', $status)),
         };
     }

@@ -179,7 +179,7 @@
                 <td class="right">1</td>
                 <td>
                     {{ strtoupper($order->product_name) }}
-                    <div class="muted">Bahan {{ strtoupper($order->fabric) }} | Warna {{ strtoupper($order->dominant_color) }}</div>
+                    <div class="muted">Bahan {{ strtoupper($order->fabric) }} | Warna {{ strtoupper($order->dominant_color) }}{{ $order->secondary_color ? ' / ' . strtoupper($order->secondary_color) : '' }}</div>
                 </td>
                 <td class="right">{{ number_format($order->unit_price, 0, ',', '.') }}</td>
                 <td class="right">{{ $order->total_pcs }}</td>

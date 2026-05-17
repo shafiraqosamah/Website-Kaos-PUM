@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('header_title', 'Buat Pesanan Custom')
+
 @section('content')
 @php
     $preset = $catalogPreset ?? [];
@@ -489,11 +491,11 @@
     .material-image-modal {
         position: fixed;
         inset: 0;
-        background: rgba(9, 22, 39, 0.7);
+        background: rgba(9, 22, 39, 0.85);
         display: none;
         align-items: center;
         justify-content: center;
-        z-index: 80;
+        z-index: 9999;
         padding: 1.2rem;
     }
 
@@ -502,11 +504,11 @@
     }
 
     .material-image-dialog {
-        width: min(720px, 100%);
+        width: min(420px, 90vw);
         background: #ffffff;
-        border-radius: 18px;
+        border-radius: 14px;
         border: 1px solid #d7e3ee;
-        box-shadow: 0 14px 34px rgba(7, 21, 38, 0.24);
+        box-shadow: 0 14px 34px rgba(7, 21, 38, 0.32);
         overflow: hidden;
     }
 
@@ -514,14 +516,14 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.75rem 0.9rem;
+        padding: 0.6rem 0.85rem;
         border-bottom: 1px solid #e2ebf3;
     }
 
     .material-image-head h4 {
         margin: 0;
         color: #14304f;
-        font-size: 0.92rem;
+        font-size: 0.88rem;
         font-weight: 700;
     }
 
@@ -536,13 +538,16 @@
     }
 
     .material-image-body {
-        padding: 1rem;
+        padding: 0.75rem;
     }
 
     .material-image-body img {
         width: 100%;
+        max-height: 480px;
+        object-fit: contain;
         height: auto;
-        border-radius: 12px;
+        border-radius: 10px;
+        background: transparent;
     }
 
     @media (max-width: 820px) {
@@ -599,6 +604,7 @@
     @csrf
     <input type="hidden" id="fabricInput" name="fabric" value="{{ old('fabric', $preset['fabric'] ?? '') }}">
     <input type="hidden" id="dominantColorInput" name="dominant_color" value="{{ old('dominant_color', $preset['dominant_color'] ?? '') }}">
+    <input type="hidden" id="secondaryColorInput" name="secondary_color" value="{{ old('secondary_color', $preset['secondary_color'] ?? '') }}">
     <input type="hidden" name="payment_type" value="{{ old('payment_type', 'dp') }}">
     <input type="hidden" id="productionQty" name="production_qty" value="{{ old('production_qty', $preset['production_qty'] ?? 60) }}">
     <div class="order-form-columns">
@@ -608,7 +614,7 @@
             <div class="main-fields-grid">
                 <div>
                     <label>Nama Pemesan <span class="required-star">*</span></label>
-                    <input type="text" name="customer_name" value="{{ old('customer_name', auth()->user()->name) }}" required>
+                    <input type="text" name="customer_name" value="{{ old('customer_name') }}" placeholder="Masukkan nama pemesan..." required>
                 </div>
                 <div>
                     <label>Total Pcs <span class="required-star">*</span></label>
@@ -638,13 +644,32 @@
                     <label>Posisi Desain Lainnya <span class="required-star">*</span></label>
                     <input type="text" id="designPositionOther" name="design_position_other" value="{{ old('design_position_other') }}" placeholder="Contoh: Lengan kanan + punggung bawah">
                 </div>
-                <div>
+                <div style="grid-row: span 2;">
                     <label>Model <span class="required-star">*</span></label>
-                    <select name="product_model" required>
+                    <select name="product_model" required style="margin-bottom: 0.6rem;">
                         @foreach ($models as $model)
                             <option value="{{ $model }}" @selected(old('product_model', $preset['product_model'] ?? '') === $model)>{{ $model }}</option>
                         @endforeach
                     </select>
+                    <!-- Contoh Model Kecil -->
+                    <div style="display: flex; gap: 0.5rem; padding-bottom: 0.3rem;">
+                        <div style="text-align: center; flex: 1; cursor: pointer;" onclick="openMaterialImageModal('{{ asset('images/katalog/modelOblong.png') }}', 'Model Kaos Oblong')">
+                            <img src="{{ asset('images/katalog/modelOblong.png') }}" style="width: 100%; aspect-ratio: 3/4; object-fit: cover; object-position: center top; border-radius: 6px; background: #e2e8f0; border: 1px solid #c3d2e2;" alt="Kaos Oblong">
+                            <span style="font-size: 0.6rem; color: #6f86a0; display: block; line-height: 1.1; margin-top: 0.2rem;">Oblong</span>
+                        </div>
+                        <div style="text-align: center; flex: 1; cursor: pointer;" onclick="openMaterialImageModal('{{ asset('images/katalog/modelRaglan.png') }}', 'Model Kaos Raglan')">
+                            <img src="{{ asset('images/katalog/modelRaglan.png') }}" style="width: 100%; aspect-ratio: 3/4; object-fit: cover; object-position: center top; border-radius: 6px; background: #e2e8f0; border: 1px solid #c3d2e2;" alt="Kaos Raglan">
+                            <span style="font-size: 0.6rem; color: #6f86a0; display: block; line-height: 1.1; margin-top: 0.2rem;">Raglan</span>
+                        </div>
+                        <div style="text-align: center; flex: 1; cursor: pointer;" onclick="openMaterialImageModal('{{ asset('images/katalog/modelPolo.png') }}', 'Model Polo Shirt')">
+                            <img src="{{ asset('images/katalog/modelPolo.png') }}" style="width: 100%; aspect-ratio: 3/4; object-fit: cover; object-position: center top; border-radius: 6px; background: #e2e8f0; border: 1px solid #c3d2e2;" alt="Polo Shirt">
+                            <span style="font-size: 0.6rem; color: #6f86a0; display: block; line-height: 1.1; margin-top: 0.2rem;">Polo</span>
+                        </div>
+                        <div style="text-align: center; flex: 1; cursor: pointer;" onclick="openMaterialImageModal('{{ asset('images/katalog/modelVneck.png') }}', 'Model Kaos V-Neck')">
+                            <img src="{{ asset('images/katalog/modelVneck.png') }}" style="width: 100%; aspect-ratio: 3/4; object-fit: cover; object-position: center top; border-radius: 6px; background: #e2e8f0; border: 1px solid #c3d2e2;" alt="V-Neck">
+                            <span style="font-size: 0.6rem; color: #6f86a0; display: block; line-height: 1.1; margin-top: 0.2rem;">V-Neck</span>
+                        </div>
+                    </div>
                 </div>
                 <div>
                     <label>Ukuran Lengan <span class="required-star">*</span></label>
@@ -688,27 +713,31 @@
                         <p class="material-meta-title">Cocok Untuk</p>
                         <ul class="material-meta-list" id="materialSuitableFor"></ul>
                     </div>
-                    @if (!empty($materialData['design_application']))
-                    <div class="material-meta-group">
+                    <div class="material-meta-group" id="designAppGroup" style="display: none;">
                         <p class="material-meta-title">Aplikasi Desain</p>
                         <ul class="material-meta-list" id="materialDesignApp"></ul>
                     </div>
-                    @endif
                     
                     <div class="color-picker-section">
-                        <p class="material-meta-title">Pilih Warna</p>
+                        <p class="material-meta-title" id="dominantColorTitle">Pilih Warna</p>
                         <div class="color-picker-grid" id="colorPickerGrid"></div>
                         <div id="selectedColorChip" class="selected-color-chip" style="display: none;">
                             <span class="color-dot"></span>
                             <span id="selectedColorName"></span>
                         </div>
                     </div>
+                    
+                    <div class="color-picker-section" id="secondaryColorSection" style="display: none; margin-top: 1rem;">
+                        <p class="material-meta-title">Pilih Warna Lengan</p>
+                        <div class="color-picker-grid" id="secondaryColorPickerGrid"></div>
+                        <div id="selectedSecondaryColorChip" class="selected-color-chip" style="display: none;">
+                            <span class="color-dot"></span>
+                            <span id="selectedSecondaryColorName"></span>
+                        </div>
+                    </div>
                 </div>
 
-                <div id="otherFabricWrap" style="display: none; margin-top: 0.9rem;">
-                    <label>Jenis Bahan Lain <span class="required-star">*</span></label>
-                    <input type="text" id="otherFabricInput" name="other_fabric" value="{{ old('other_fabric') }}" placeholder="Contoh: Baby Terry">
-                </div>
+
             </div>
 
             <!-- Estimasi, Upload, Catatan after Pilih Bahan & Warna -->
@@ -716,18 +745,18 @@
                 <div class="main-fields-grid">
                     <div class="field-full">
                         <label>Estimasi Tanggal Selesai <span class="required-star">*</span></label>
-                        <input type="date" name="estimated_finish_date" min="{{ now()->addDays(10)->toDateString() }}" value="{{ old('estimated_finish_date') }}" required>
-                        <small class="muted">Pilih tanggal estimasi di atas. Estimasi produksi normal 10-21 hari kerja tergantung jumlah dan kompleksitas desain. Tim kami akan mengkonfirmasi kelayakan tanggal.</small>
+                        <input type="date" id="estimatedFinishDate" name="estimated_finish_date" min="{{ now()->addDays(10)->toDateString() }}" value="{{ old('estimated_finish_date') }}" required>
+                        <small class="muted">Minimal 10 hari dari tanggal pemesanan. Estimasi produksi normal 10–21 hari kerja tergantung jumlah dan kompleksitas desain. Tim kami akan mengkonfirmasi kelayakan tanggal.</small>
                     </div>
                     <div class="field-full">
                         <label>Upload Desain (maksimal 2 file: jpg/png/pdf/svg)</label>
                         <div class="grid grid-2" style="gap:0.65rem;">
                             <div>
-                                <label style="font-size:0.75rem; color:#6f86a0; font-weight:600; margin-bottom:0.3rem;">File Desain 1</label>
+                                <label style="font-size:0.75rem; color:#6f86a0; font-weight:600; margin-bottom:0.3rem;">File Desain Depan</label>
                                 <input type="file" name="design_front_file">
                             </div>
                             <div>
-                                <label style="font-size:0.75rem; color:#6f86a0; font-weight:600; margin-bottom:0.3rem;">File Desain 2</label>
+                                <label style="font-size:0.75rem; color:#6f86a0; font-weight:600; margin-bottom:0.3rem;">File Desain Belakang</label>
                                 <input type="file" name="design_back_file">
                             </div>
                         </div>
@@ -810,7 +839,7 @@
 
     <div class="order-submit-card">
         <p id="submitHint" class="submit-hint">Sistem akan otomatis menghitung DP dan sisa pelunasan setelah submit.</p>
-        <button id="submitOrderBtn" class="btn btn-brand" type="submit">Lanjut ke Pembayaran</button>
+        <button id="submitOrderBtn" class="btn btn-brand" type="submit">Submit</button>
     </div>
 </form>
 
@@ -830,15 +859,12 @@
 <script>
 (() => {
     const materialPrices = {
-        'Drill': 115000,
-        'Taipan': 120000,
-        'Tropical': 110000,
-        'Oxford': 125000,
-        'Twill': 118000,
-        'Ribstop': 130000,
-        'Lacoste Pique': 140000,
         'Cotton Combed 30s': 85000,
+        'Cotton Combed 24s': 95000,
         'Cotton Combed 20s': 95000,
+        'Cotton Bamboo': 105000,
+        'Lacoste Cotton Pique': 140000,
+        'Lacoste CVC': 130000,
         'Drifit': 105000,
         'Lainnya': 100000,
     };
@@ -853,8 +879,7 @@
     const materialCatalog = @json($materialCatalog ?? []);
     const fabricInput = document.getElementById('fabricInput');
     const dominantColorInput = document.getElementById('dominantColorInput');
-    const otherFabricInput = document.getElementById('otherFabricInput');
-    const otherFabricWrap = document.getElementById('otherFabricWrap');
+
     const unitPriceInput = document.getElementById('unitPrice');
     const productionTypeSelect = document.getElementById('productionType');
     const designPositionSelect = document.getElementById('designPosition');
@@ -892,9 +917,16 @@
     const materialDesignApp = document.getElementById('materialDesignApp');
     const colorPickerGrid = document.getElementById('colorPickerGrid');
     const selectedColorChip = document.getElementById('selectedColorChip');
+    const dominantColorTitle = document.getElementById('dominantColorTitle');
+    
+    const secondaryColorSection = document.getElementById('secondaryColorSection');
+    const secondaryColorPickerGrid = document.getElementById('secondaryColorPickerGrid');
+    const selectedSecondaryColorChip = document.getElementById('selectedSecondaryColorChip');
+    const secondaryColorInput = document.getElementById('secondaryColorInput');
 
     let selectedMaterial = null;
     let selectedColor = null;
+    let selectedSecondaryColor = null;
 
     const formatRupiah = (value) => {
         return 'Rp' + new Intl.NumberFormat('id-ID').format(value || 0);
@@ -906,8 +938,6 @@
         const techniqueExtra = techniqueSurcharge[productionTypeSelect.value] ?? 0;
         const finalPrice = basePrice + techniqueExtra;
         unitPriceInput.value = Math.min(200000, Math.max(85000, finalPrice));
-        otherFabricWrap.style.display = fabric === 'Lainnya' ? 'block' : 'none';
-        otherFabricInput.required = fabric === 'Lainnya';
     };
 
     const updateDesignPositionField = () => {
@@ -932,7 +962,7 @@
             return;
         }
 
-        submitHint.textContent = 'Semua data sudah lengkap.';
+        submitHint.textContent = 'Semua data sudah lengkap. Submit untuk menunggu pesanan diverifikasi max 2x24 jam.';
         submitHint.style.color = '#1c6a47';
     };
 
@@ -997,9 +1027,7 @@
 
         surchargeText.textContent = formatRupiah(surcharge);
 
-        const resolvedFabric = fabricInput.value === 'Lainnya'
-            ? (otherFabricInput.value?.trim() || 'Lainnya')
-            : (fabricInput.value || '-');
+        const resolvedFabric = fabricInput.value || '-';
 
         summaryFabric.textContent = resolvedFabric;
         summaryTotalPcs.textContent = `${totalPcs || 0} pcs`;
@@ -1079,9 +1107,13 @@
 
         // Colors
         colorPickerGrid.innerHTML = '';
+        secondaryColorPickerGrid.innerHTML = '';
         selectedColor = null;
+        selectedSecondaryColor = null;
         dominantColorInput.value = '';
+        secondaryColorInput.value = '';
         selectedColorChip.style.display = 'none';
+        selectedSecondaryColorChip.style.display = 'none';
 
         if (data.colors && data.colors.length) {
             data.colors.forEach(color => {
@@ -1094,12 +1126,21 @@
                 btn.title = color.name;
                 btn.addEventListener('click', () => selectColor(color.name, color.hex));
                 colorPickerGrid.appendChild(btn);
+                
+                const btnSec = document.createElement('button');
+                btnSec.type = 'button';
+                btnSec.className = 'color-option secondary-color-option';
+                btnSec.dataset.name = color.name;
+                btnSec.dataset.hex = color.hex;
+                btnSec.style.backgroundColor = color.hex;
+                btnSec.title = color.name;
+                btnSec.addEventListener('click', () => selectSecondaryColor(color.name, color.hex));
+                secondaryColorPickerGrid.appendChild(btnSec);
             });
         }
 
         // Show/hide other fabric input
-        otherFabricWrap.style.display = materialKey === 'Lainnya' ? 'block' : 'none';
-        otherFabricInput.required = materialKey === 'Lainnya';
+
 
         updateMaterialAndPrice();
         updateSurchargeAndEstimate();
@@ -1109,7 +1150,7 @@
         selectedColor = colorName;
         dominantColorInput.value = colorName;
 
-        document.querySelectorAll('.color-option').forEach(btn => {
+        colorPickerGrid.querySelectorAll('.color-option').forEach(btn => {
             btn.classList.toggle('is-selected', btn.dataset.name === colorName);
         });
 
@@ -1118,6 +1159,38 @@
         chip.querySelector('.color-dot').style.backgroundColor = colorHex;
         chip.querySelector('#selectedColorName').textContent = colorName;
     };
+    
+    const selectSecondaryColor = (colorName, colorHex) => {
+        selectedSecondaryColor = colorName;
+        secondaryColorInput.value = colorName;
+
+        secondaryColorPickerGrid.querySelectorAll('.secondary-color-option').forEach(btn => {
+            btn.classList.toggle('is-selected', btn.dataset.name === colorName);
+        });
+
+        const chip = selectedSecondaryColorChip;
+        chip.style.display = 'inline-flex';
+        chip.querySelector('.color-dot').style.backgroundColor = colorHex;
+        chip.querySelector('#selectedSecondaryColorName').textContent = colorName;
+    };
+    
+    const updateRaglanView = () => {
+        if (modelSelect.value === 'Raglan') {
+            dominantColorTitle.textContent = 'Pilih Warna Body';
+            secondaryColorSection.style.display = 'block';
+        } else {
+            dominantColorTitle.textContent = 'Pilih Warna';
+            secondaryColorSection.style.display = 'none';
+            secondaryColorInput.value = '';
+            selectedSecondaryColor = null;
+            selectedSecondaryColorChip.style.display = 'none';
+            secondaryColorPickerGrid.querySelectorAll('.secondary-color-option').forEach(btn => {
+                btn.classList.remove('is-selected');
+            });
+        }
+    };
+    
+    modelSelect.addEventListener('change', updateRaglanView);
 
     // Initialize material picker
     const initMaterialPicker = () => {
@@ -1138,11 +1211,20 @@
                     }
                 }
             }
+            if (secondaryColorInput.value) {
+                const data = materialCatalog[fabricInput.value];
+                if (data && data.colors) {
+                    const color = data.colors.find(c => c.name === secondaryColorInput.value);
+                    if (color) {
+                        selectSecondaryColor(color.name, color.hex);
+                    }
+                }
+            }
         }
     };
 
     // Event listeners
-    [otherFabricInput, productionTypeSelect, designPositionSelect, designPositionOtherInput, modelSelect, sleeveTypeSelect, totalPcsInput, ...sizeInputs, ...Array.from(orderForm.querySelectorAll('input, select, textarea'))].forEach((el) => {
+    [productionTypeSelect, designPositionSelect, designPositionOtherInput, modelSelect, sleeveTypeSelect, totalPcsInput, ...sizeInputs, ...Array.from(orderForm.querySelectorAll('input, select, textarea'))].forEach((el) => {
         if (!el) return;
 
         el.addEventListener('input', () => {
@@ -1172,11 +1254,26 @@
 
     // Initialize
     initMaterialPicker();
+    updateRaglanView();
     applySizeLimits();
     updateMaterialAndPrice();
     updateDesignPositionField();
     syncProductionQty();
     updateSurchargeAndEstimate();
+
+    // Enforce minimum date (10 days from today) on estimated finish date
+    const estimatedDateInput = document.getElementById('estimatedFinishDate');
+    if (estimatedDateInput) {
+        const minDate = "{{ now()->addDays(10)->toDateString() }}";
+        estimatedDateInput.setAttribute('min', minDate);
+
+        estimatedDateInput.addEventListener('change', () => {
+            if (estimatedDateInput.value && estimatedDateInput.value < minDate) {
+                estimatedDateInput.value = '';
+                alert('Tanggal estimasi minimal 10 hari dari hari ini (' + minDate.split('-').reverse().join('/') + ').');
+            }
+        });
+    }
 
     orderForm.addEventListener('submit', (event) => {
         const selected = getSelectedSizesTotal();
@@ -1203,6 +1300,12 @@
             return;
         }
 
+        if (modelSelect.value === 'Raglan' && !secondaryColorInput.value) {
+            event.preventDefault();
+            submitHint.textContent = 'Pilih warna lengan terlebih dahulu untuk model Raglan.';
+            submitHint.style.color = '#8f2f2f';
+            return;
+        }
         if (!orderForm.checkValidity()) {
             event.preventDefault();
             orderForm.reportValidity();
@@ -1210,6 +1313,12 @@
             submitHint.style.color = '#8f2f2f';
         }
     });
+
+    // Move modal to body so it escapes any grid/stacking-context constraints
+    const imageModal = document.getElementById('materialImageModal');
+    if (imageModal && imageModal.parentNode !== document.body) {
+        document.body.appendChild(imageModal);
+    }
 
     // Modal functions
     window.openMaterialImageModal = (imageSrc, title) => {

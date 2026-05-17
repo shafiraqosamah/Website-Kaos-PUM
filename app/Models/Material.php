@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Material extends Model
 {
@@ -22,5 +23,13 @@ class Material extends Model
             'base_price' => 'integer',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function colors(): BelongsToMany
+    {
+        return $this->belongsToMany(Color::class, 'material_colors')
+            ->withPivot('sort_order')
+            ->orderByPivot('sort_order')
+            ->withTimestamps();
     }
 }

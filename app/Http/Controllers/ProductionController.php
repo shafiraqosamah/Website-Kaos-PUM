@@ -7,21 +7,37 @@ use App\Models\ProductionStep;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
+use App\Mail\SettlementRequiredMail;
 
 class ProductionController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $user = request()->user();
+        $user = $request->user();
 
         $activeOrders = Order::with(['user', 'workOrder', 'productionSteps'])
             ->whereIn('order_status', ['verified_payment', 'in_production', 'finishing_waiting_settlement', 'production_done_waiting_admin', 'ready_for_pickup'])
+            ->when($request->search, function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('order_code', 'like', "%{$request->search}%")
+                      ->orWhere('product_name', 'like', "%{$request->search}%")
+                      ->orWhere('customer_name', 'like', "%{$request->search}%");
+                });
+            })
             ->latest()
             ->get();
 
         $completedOrders = Order::with(['user', 'workOrder', 'productionSteps'])
             ->where('order_status', 'completed')
+            ->when($request->search, function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('order_code', 'like', "%{$request->search}%")
+                      ->orWhere('product_name', 'like', "%{$request->search}%")
+                      ->orWhere('customer_name', 'like', "%{$request->search}%");
+                });
+            })
             ->latest('updated_at')
             ->take(100)
             ->get();
@@ -87,8 +103,10 @@ class ProductionController extends Controller
             ]);
         }
 
-        if ($isFinishing && $status === 'done' && $order->remaining_amount > 0) {
-            return back()->withErrors(['production' => 'Pelunasan belum diverifikasi. Finishing tidak bisa diselesaikan.']);
+        $isSteam = str_contains(strtolower(trim((string) $step->step_name)), 'steam');
+
+        if ($isFinishing && in_array($status, ['in_progress', 'done'], true) && $order->remaining_amount > 0) {
+            return back()->withErrors(['production' => 'Pelunasan belum diverifikasi. Tahap finishing tidak dapat dimulai atau diselesaikan.']);
         }
 
         DB::transaction(function () use ($request, $order, $step, $status, $isFinishing): void {
@@ -98,18 +116,10 @@ class ProductionController extends Controller
             $step->completed_at = $status === 'done' ? now() : null;
             $step->save();
 
-            if ($isFinishing && in_array($status, ['in_progress', 'done'], true) && $order->remaining_amount > 0) {
-                $order->update([
-                    'order_status' => 'finishing_waiting_settlement',
-                ]);
-                return;
-            }
-
             $visibleProductionSteps = $order->productionSteps()
                 ->get()
                 ->filter(static function (ProductionStep $productionStep): bool {
                     $normalized = strtolower(trim((string) $productionStep->step_name));
-
                     return ! str_contains($normalized, 'persiapan bahan');
                 });
 
@@ -123,9 +133,31 @@ class ProductionController extends Controller
                     'payment_status' => 'fully_paid',
                 ]);
             } else {
-                $order->update([
-                    'order_status' => 'in_production',
-                ]);
+                $steamStep = $visibleProductionSteps->first(function ($s) {
+                    return str_contains(strtolower(trim((string) $s->step_name)), 'steam');
+                });
+                
+                $isSteamStarted = $steamStep && in_array($steamStep->status, ['in_progress', 'done'], true);
+                
+                if ($isSteamStarted && $order->remaining_amount > 0) {
+                    $updates = ['order_status' => 'finishing_waiting_settlement'];
+                    $newlyFinished = false;
+                    
+                    if ($steamStep->status === 'done' && is_null($order->payment_deadline_at)) {
+                        $updates['payment_deadline_at'] = now()->addHours(48);
+                        $newlyFinished = true;
+                    }
+
+                    $order->update($updates);
+                    
+                    if ($newlyFinished && $order->user && $order->user->email) {
+                        Mail::to($order->user->email)->send(new SettlementRequiredMail($order));
+                    }
+                } else {
+                    $order->update([
+                        'order_status' => 'in_production',
+                    ]);
+                }
             }
         });
 

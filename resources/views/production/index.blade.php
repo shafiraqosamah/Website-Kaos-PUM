@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('header_title', 'Daftar SPK & Produksi')
+
 @section('content')
 @php
     $isAdminViewer = $user?->hasRole(\App\Models\User::ROLE_ADMIN) ?? false;
@@ -184,6 +186,22 @@
             padding: 1.2rem 1.1rem;
         }
     }
+
+    .action-detail {
+        width: auto;
+        min-width: 0;
+        align-self: center;
+        background: #ffffff;
+        border: 1px solid #d9e2ec;
+        color: #49637a;
+        font-size: 0.76rem;
+        padding: 0.42rem 0.7rem;
+        border-radius: 9px;
+    }
+
+    .action-detail:hover {
+        background: #f3f7fb;
+    }
 </style>
 
 <div class="production-module-shell">
@@ -317,7 +335,7 @@
                         <td>{{ $order->estimated_finish_date?->format('d/m/Y') ?? '-' }}</td>
                         <td>{{ $completedAt?->format('d/m/Y H:i') }}</td>
                         <td style="display:flex; gap:0.45rem; flex-wrap:wrap;">
-                            <a class="btn btn-outline" href="{{ route('production.show', $order) }}">Detail</a>
+                            <a class="btn action-detail" href="{{ route('production.show', $order) }}">Detail</a>
                             @if($order->workOrder)
                                 <a class="btn btn-alt" href="{{ route('production.spk', $order) }}" target="_blank">SPK</a>
                             @endif

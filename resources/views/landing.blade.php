@@ -50,9 +50,10 @@
         ['step' => '01', 'icon' => 'images/icon/loginicon.jpg', 'title' => 'Masuk / Daftar Akun', 'text' => 'Buat akun baru atau login jika sudah terdaftar. Lengkapi data penting seperti nama, email, nomor WhatsApp, dan informasi profil lainnya.'],
         ['step' => '02', 'icon' => 'images/icon/formicon.jpg', 'title' => 'Buat Pesanan Detail', 'text' => 'Klik Buat Pesanan, isi form sesuai kebutuhan, unggah gambar desain, lalu tentukan tanggal estimasi. Pesanan akan masuk tahap verifikasi terlebih dahulu.'],
         ['step' => '03', 'icon' => 'images/icon/paymenticon.jpg', 'title' => 'Pilih Skema Pembayaran', 'text' => 'Tentukan metode pembayaran sesuai kebutuhan: DP 50% di awal atau langsung lunas di awal pemesanan.'],
-        ['step' => '04', 'icon' => 'images/icon/produksiicon.jpg', 'title' => 'Produksi Dimulai', 'text' => 'Setelah pembayaran terkonfirmasi, tim kami langsung memproses produksi berdasarkan rincian pesanan dan target estimasi tanggal yang dipilih.'],
+        ['step' => '04', 'icon' => 'images/icon/ambilicon.jpg', 'title' => 'Quality Control & Pengambilan', 'text' => 'Tim melakukan quality control akhir untuk memastikan hasil sesuai standar sebelum pesanan diambil oleh pelanggan.'],
         ['step' => '05', 'icon' => 'images/icon/finishing.jpg', 'title' => 'Pelunasan Saat Finishing', 'text' => 'Ketika pesanan masuk tahap finishing, sistem akan memberi notifikasi bila pembayaran belum lunas agar segera dilakukan pelunasan.'],
-        ['step' => '06', 'icon' => 'images/icon/ambilicon.jpg', 'title' => 'Quality Control & Pengambilan', 'text' => 'Tim melakukan quality control akhir untuk memastikan hasil sesuai standar sebelum pesanan diambil oleh pelanggan.'],
+        ['step' => '06', 'icon' => 'images/icon/produksiicon.jpg', 'title' => 'Produksi Dimulai', 'text' => 'Setelah pembayaran terkonfirmasi, tim kami langsung memproses produksi berdasarkan rincian pesanan dan target estimasi tanggal yang dipilih.'],
+
     ];
 
     $landingTestimonials = [
@@ -82,6 +83,10 @@
         [
             'question' => 'Apakah pesanan yang sudah selesai bisa dikirim ke alamat pelanggan?',
             'answer' => 'Tidak. Seluruh pesanan yang telah selesai diproduksi dan berstatus lunas wajib diambil secara langsung oleh pelanggan.',
+        ],
+        [
+            'question' => 'Apakah ada batas waktu pembayaran?',
+            'answer' => 'Seluruh verifikasi dan juga batas waktu diberikan rentang 2x24 jam, jika tidak dilakukan sesuai waktu yang telah ditentukan maka pesanan dibatalkan otomatis oleh sistem.',
         ],
     ];
 
@@ -1763,7 +1768,7 @@
 <div class="landing-page">
     <div class="landing-shell">
         <section class="hero" id="home" aria-label="Landing Hero">
-            <div class="hero-grid">
+            <div class="hero-grid" style="justify-content: space-between; flex-wrap: wrap; gap: 2rem; padding-right: clamp(1rem, 5vw, 4rem);">
                 <div class="hero-copy">
                     <h1>PT PANJI USAHA MULIA</h1>
                     <p class="hero-badge">Spesialis Konveksi Custom di Bandung sejak 2002</p>
@@ -1774,7 +1779,6 @@
                         <a class="btn btn-alt" href="#how-to-order">Lihat Cara Order</a>
                     </div>
                 </div>
-
             </div>
         </section>
 
@@ -1885,6 +1889,9 @@
             <div class="featured-grid">
                 @foreach ($featuredProducts as $product)
                     <article class="featured-card">
+                        <div class="card-model-title" style="text-align: center; padding: 1.2rem 1rem 0.5rem; font-family: 'Playfair Display', serif; font-size: 1.35rem; color: #11233a; font-weight: 700; border-bottom: 1px solid #f0f4f8; margin-bottom: 0.5rem;">
+                            {{ $product['category'] }}
+                        </div>
                         @if (!empty($product['image']))
                             <img class="featured-image" src="{{ asset($product['image']) }}" alt="{{ $product['name'] }}">
                         @endif
@@ -1895,16 +1902,67 @@
                             </div>
                             <div class="featured-tags">
                                 <span class="tag-pill">{{ $product['category'] }}</span>
-                                <span class="tag-pill">{{ $product['price'] }}</span>
-                                <span class="tag-pill">{{ $product['min_order'] }}</span>
+                                @if(isset($product['price']))
+                                    <span class="tag-pill">{{ $product['price'] }}</span>
+                                @endif
+                                @if(isset($product['min_order']))
+                                    <span class="tag-pill">{{ $product['min_order'] }}</span>
+                                @endif
                             </div>
                             <div class="catalog-actions">
                                 <a class="btn-ghost" href="{{ route('catalog.show', $product['slug']) }}">Detail</a>
-                                <a class="btn btn-brand" href="{{ auth()->check() ? (auth()->user()->hasRole('customer') ? route('customer.orders.create', $product['preset']) : route('dashboard')) : route('register') }}">Pesan</a>
                             </div>
                         </div>
                     </article>
                 @endforeach
+            </div>
+        </section>
+
+        <!-- New Section: Pilihan Model -->
+        <section class="section-block" id="pilihan-model" aria-labelledby="model-title" style="background: #f8fafc; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+            <div class="section-intro">
+                <div class="services-intro-center">
+                    <h2 class="services-title" id="model-title">Mau Pesan Kaos? Kenali Dulu Model-Modelnya!</h2>
+                    <p class="services-copy">Sebelum memesan, pastikan Anda memilih model kaos yang paling sesuai dengan kebutuhan dan preferensi gaya Anda.</p>
+                </div>
+            </div>
+
+            <div class="featured-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
+                <!-- Model 1 -->
+                <article class="featured-card" style="display: flex; flex-direction: column; align-items: center; text-align: center; border: none; background: transparent; padding: 0;">
+                    <div style="width: 100%; aspect-ratio: 3/4; background: #e2e8f0; border-radius: 16px; margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                        <img src="{{ asset('images/katalog/modelOblong.png') }}" alt="Kaos Oblong" style="width: 100%; height: 100%; object-fit: cover; object-position: center top;">
+                    </div>
+                    <h3 style="font-size: 1.15rem; color: #0d2749; margin: 0 0 0.5rem; font-weight: 700;">Kaos Oblong</h3>
+                    <p style="color: #64748b; font-size: 0.9rem; line-height: 1.6; margin: 0;">Model kaos paling klasik dengan kerah berbentuk bulat</p>
+                </article>
+
+                <!-- Model 2 -->
+                <article class="featured-card" style="display: flex; flex-direction: column; align-items: center; text-align: center; border: none; background: transparent; padding: 0;">
+                    <div style="width: 100%; aspect-ratio: 3/4; background: #e2e8f0; border-radius: 16px; margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                        <img src="{{ asset('images/katalog/modelRaglan.png') }}" alt="Kaos Raglan" style="width: 100%; height: 100%; object-fit: cover; object-position: center top;">
+                    </div>
+                    <h3 style="font-size: 1.15rem; color: #0d2749; margin: 0 0 0.5rem; font-weight: 700;">Kaos Raglan</h3>
+                    <p style="color: #64748b; font-size: 0.9rem; line-height: 1.6; margin: 0;">Potongan lengan yang menyambung miring dari kerah ke ketiak, dengan warna berbeda</p>
+                </article>
+
+                <!-- Model 3 -->
+                <article class="featured-card" style="display: flex; flex-direction: column; align-items: center; text-align: center; border: none; background: transparent; padding: 0;">
+                    <div style="width: 100%; aspect-ratio: 3/4; background: #e2e8f0; border-radius: 16px; margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                        <img src="{{ asset('images/katalog/modelPolo.png') }}" alt="Kaos Polo (Polo Shirt)" style="width: 100%; height: 100%; object-fit: cover; object-position: center top;">
+                    </div>
+                    <h3 style="font-size: 1.15rem; color: #0d2749; margin: 0 0 0.5rem; font-weight: 700;">Kaos Polo (Polo Shirt)</h3>
+                    <p style="color: #64748b; font-size: 0.9rem; line-height: 1.6; margin: 0;">Ciri khas kerah seperti kemeja ditambah 2–3 kancing di bagian depan</p>
+                </article>
+
+                <!-- Model 4 -->
+                <article class="featured-card" style="display: flex; flex-direction: column; align-items: center; text-align: center; border: none; background: transparent; padding: 0;">
+                    <div style="width: 100%; aspect-ratio: 3/4; background: #e2e8f0; border-radius: 16px; margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                        <img src="{{ asset('images/katalog/modelVneck.png') }}" alt="Kaos V-Neck" style="width: 100%; height: 100%; object-fit: cover; object-position: center top;">
+                    </div>
+                    <h3 style="font-size: 1.15rem; color: #0d2749; margin: 0 0 0.5rem; font-weight: 700;">Kaos V-Neck</h3>
+                    <p style="color: #64748b; font-size: 0.9rem; line-height: 1.6; margin: 0;">Ciri khas kerah berbentuk huruf “V” di bagian depan</p>
+                </article>
             </div>
         </section>
 
@@ -2027,7 +2085,7 @@
                         </span>
                         <div>
                             <h3>Whatsapp / SMS / HP:</h3>
-                            <p><a href="https://wa.me/6282129287094" target="_blank" rel="noopener noreferrer">0821 2928 7094</a></p>
+                            <p><a href="https://wa.me/628123456789" target="_blank" rel="noopener noreferrer">0812 3456 789</a></p>
                         </div>
                     </div>
 
@@ -2064,6 +2122,7 @@
                 <div>
                     <h3 class="footer-title">Bantuan</h3>
                     <div class="footer-links">
+                        <a href="#pilihan-model">Pilihan Model</a>
                         <a href="#how-to-order">Cara Pemesanan</a>
                         <a href="#faq">FAQ</a>
                         <a href="#help-center">Pusat Bantuan</a>

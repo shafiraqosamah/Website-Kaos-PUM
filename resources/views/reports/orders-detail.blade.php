@@ -3,18 +3,9 @@
 @section('content')
 @php
     $status = (string) ($order->admin_verification_status ?: 'pending');
-
-    $verificationLabel = match ($status) {
-        'verified' => 'Terverifikasi',
-        'revision_requested' => 'Ajukan Kembali',
-        default => 'Menunggu Verifikasi',
-    };
-
-    $verificationClass = match ($status) {
-        'verified' => 'status-success',
-        'revision_requested' => 'status-danger',
-        default => 'status-warning',
-    };
+    $resolvedStatus = \App\Support\OrderStatusPresenter::resolveForCustomer($order, $order->payments->last());
+    $verificationLabel = \App\Support\OrderStatusPresenter::customerLabel($resolvedStatus);
+    $verificationClass = \App\Support\OrderStatusPresenter::customerClass($resolvedStatus);
 
     $sizeSummary = $order->sizes
         ->sortBy('size_name')
@@ -35,6 +26,18 @@
 
     $frontIsImage = $isPreviewableImage($designFrontPath);
     $backIsImage = $isPreviewableImage($designBackPath);
+
+    $extractedSecondaryColor = $order->secondary_color;
+    if (!$extractedSecondaryColor) {
+        $tempLines = preg_split('/\R/', (string) ($order->notes ?? '')) ?: [];
+        foreach ($tempLines as $line) {
+            $trimmed = trim($line);
+            if (\Illuminate\Support\Str::startsWith($trimmed, 'Warna Lengan: ')) {
+                $extractedSecondaryColor = trim((string) \Illuminate\Support\Str::after($trimmed, 'Warna Lengan: '));
+                break;
+            }
+        }
+    }
 @endphp
 
 <style>
@@ -268,6 +271,33 @@
             <p class="spec-label">Rincian Ukuran</p>
             <p class="spec-value">{{ $sizeSummary !== '' ? $sizeSummary : '-' }}</p>
         </div>
+        @php
+            $noteLines = preg_split('/\R/', (string) ($order->notes ?? '')) ?: [];
+            $customerNotes = [];
+            foreach ($noteLines as $line) {
+                $trimmed = trim($line);
+                if ($trimmed === '') continue;
+                if (\Illuminate\Support\Str::startsWith($trimmed, 'Jenis: ')) continue;
+                if (\Illuminate\Support\Str::startsWith($trimmed, 'Teknik Sablon: ')) continue;
+                if (\Illuminate\Support\Str::startsWith($trimmed, 'Model: ')) continue;
+                if (\Illuminate\Support\Str::startsWith($trimmed, 'Ukuran Lengan: ')) continue;
+                if (\Illuminate\Support\Str::startsWith($trimmed, 'Tambahan ukuran XXL/XXXL: ')) continue;
+                if (\Illuminate\Support\Str::startsWith($trimmed, 'Posisi Desain: ')) continue;
+                if (\Illuminate\Support\Str::startsWith($trimmed, 'Catatan desain: ')) continue;
+                if (\Illuminate\Support\Str::startsWith($trimmed, 'Catatan pelanggan: ')) {
+                    $customerNotes[] = trim((string) \Illuminate\Support\Str::after($trimmed, 'Catatan pelanggan: '));
+                    continue;
+                }
+                $customerNotes[] = $trimmed;
+            }
+            $displayCustomerNote = trim(implode(PHP_EOL, array_filter($customerNotes)));
+        @endphp
+        @if ($displayCustomerNote !== '')
+        <div class="spec-item" style="grid-column: 1 / -1; background-color: #f1f8ff; border: 1px solid #cce5ff;">
+            <p class="spec-label" style="color: #4a5568;">Catatan Pesanan</p>
+            <p class="spec-value" style="white-space:pre-wrap;">{{ $displayCustomerNote }}</p>
+        </div>
+        @endif
         <div class="spec-item" style="grid-column: 1 / -1;">
             <p class="spec-label">Catatan Desain</p>
             <p class="spec-value">{{ $order->design_notes ?: '-' }}</p>
@@ -357,7 +387,11 @@
                         </div>
                         <div>
                             <label>Warna Dominan</label>
-                            <input type="text" name="dominant_color" value="{{ old('dominant_color', $order->dominant_color) }}" required>
+                            <input type="text" name="dominant_color" id="dominant_color" value="{{ old('dominant_color', $order->dominant_color) }}" required>
+                        </div>
+                        <div id="secondary-color-group">
+                            <label>Warna Lengan</label>
+                            <input type="text" name="secondary_color" id="secondary_color" value="{{ old('secondary_color', $extractedSecondaryColor) }}">
                         </div>
                         <div>
                             <label>Tanggal Selesai</label>
@@ -384,4 +418,26 @@
         @endif
     </div>
 </section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modelSelect = document.querySelector('select[name="product_model"]');
+        const secondaryGroup = document.getElementById('secondary-color-group');
+        const secondaryInput = document.getElementById('secondary_color');
+
+        if (!modelSelect || !secondaryGroup) return;
+
+        function updateColorFields() {
+            if (modelSelect.value === 'Raglan') {
+                secondaryGroup.style.display = 'block';
+            } else {
+                secondaryGroup.style.display = 'none';
+                secondaryInput.value = '';
+            }
+        }
+
+        updateColorFields();
+        modelSelect.addEventListener('change', updateColorFields);
+    });
+</script>
 @endsection

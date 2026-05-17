@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('header_title', 'Dashboard')
+
 @section('content')
 @php
     $statusClass = static function (string $status): string {
@@ -48,7 +50,7 @@
 
     .summary-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
         gap: 0.95rem;
         margin-bottom: 1.2rem;
     }
@@ -70,8 +72,12 @@
         border-top-color: #0c7fb6;
     }
 
-    .summary-card.pending {
+    .summary-card.pending-verif {
         border-top-color: #d95f18;
+    }
+
+    .summary-card.pending-pay {
+        border-top-color: #eab308;
     }
 
     .summary-card.completed {
@@ -410,9 +416,7 @@
     }
 
     @media (max-width: 980px) {
-        .summary-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
+        /* Auto-fit handles the grid naturally, no need for column overrides */
     }
 
     @media (max-width: 720px) {
@@ -421,7 +425,7 @@
         }
 
         .summary-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr; /* Stack into 2 columns on mobile if possible */
         }
 
         .recent-orders-head {
@@ -466,9 +470,9 @@
                 <span>🔔</span>
                 <span>
                     @if (($waitingPaymentAlertCount ?? 0) > 1)
-                        Ada <b>{{ $waitingPaymentAlertCount }}</b> pesanan yang <b>Menunggu Pembayaran</b>. Contoh: <b>{{ $dueWaitingPaymentOrder->order_code }}</b>.
+                        Ada <b>{{ $waitingPaymentAlertCount }}</b> pesanan yang <b>Menunggu Pembayaran (Max 2x24 Jam)</b>. Contoh: <b>{{ $dueWaitingPaymentOrder->order_code }}</b>.
                     @else
-                        Pesanan <b>{{ $dueWaitingPaymentOrder->order_code }}</b> sudah <b>Terverifikasi</b> dan <b>Menunggu Pembayaran</b>.
+                        Pesanan <b>{{ $dueWaitingPaymentOrder->order_code }}</b> sudah <b>Terverifikasi</b> dan <b>Menunggu Pembayaran (Max 2x24 Jam)</b>.
                     @endif
                 </span>
                 <a href="{{ route('customer.orders.payments.edit', [$dueWaitingPaymentOrder, $dueWaitingPayment]) }}">Lanjut Pembayaran</a>
@@ -506,7 +510,7 @@
                 @if (($settlementAlertCount ?? 0) > 1)
                     Ada <b>{{ $settlementAlertCount }}</b> pesanan yang <b>Menunggu Pelunasan</b>. Contoh: <b>{{ $dueSettlementOrder->order_code }}</b>.
                 @else
-                    Pesanan <b>{{ $dueSettlementOrder->order_code }}</b> sudah masuk tahap finishing dan <b>Menunggu Pelunasan</b>.
+                    Pesanan <b>{{ $dueSettlementOrder->order_code }}</b> telah mencapai tahap Steam & Pressing dan <b>Menunggu Pelunasan</b>.
                 @endif
             </span>
             @if ($pendingSettlementPayment)
@@ -545,10 +549,15 @@
             <div class="value">{{ $inProgressOrders }}</div>
             <div class="note">Sedang diproses tim produksi</div>
         </article>
-        <article class="summary-card pending">
+        <article class="summary-card pending-verif">
             <div class="label">Menunggu Verifikasi</div>
-            <div class="value">{{ $waitingPaymentOrders }}</div>
+            <div class="value">{{ $pendingVerificationOrdersCount }}</div>
             <div class="note">Proses review admin</div>
+        </article>
+        <article class="summary-card pending-pay">
+            <div class="label">Menunggu Pembayaran</div>
+            <div class="value">{{ $pendingPaymentOrdersCount }}</div>
+            <div class="note">Max 2x24 Jam</div>
         </article>
         <article class="summary-card completed">
             <div class="label">Pesanan Selesai</div>
@@ -570,6 +579,7 @@
                         <th>No. Order</th>
                         <th class="col-product">Produk</th>
                         <th>Qty</th>
+                        <th>Estimasi Selesai</th>
                         <th>Total</th>
                         <th>Pembayaran</th>
                         <th class="status-head">Status</th>
@@ -629,6 +639,7 @@
                             <td>{{ $order->order_code }}</td>
                             <td class="col-product"><span>{{ $order->product_name ?: '-' }}</span></td>
                             <td>{{ number_format((int) $order->total_pcs, 0, ',', '.') }}</td>
+                            <td>{{ $order->estimated_finish_date ? \Carbon\Carbon::parse($order->estimated_finish_date)->format('d/m/Y') : '-' }}</td>
                             <td>Rp {{ number_format((float) $order->subtotal, 0, ',', '.') }}</td>
                             <td>
                                 <div class="payment-cell">
@@ -647,7 +658,7 @@
                                             <span class="payment-amount-note">Sudah lunas</span>
                                         @endif
                                     @elseif ($isWaitingPayment)
-                                        <span class="payment-amount-note payment-waiting-note">Menunggu Pembayaran</span>
+                                        <span class="payment-amount-note payment-waiting-note">Menunggu Pembayaran (Max 2x24 Jam)</span>
                                         <span class="payment-amount-note">Silakan lanjut pembayaran</span>
                                     @else
                                         <span class="payment-pill {{ $paymentMethodClass }}">{{ $paymentMethodLabel }}</span>
@@ -697,6 +708,7 @@
                             <th>No. Order</th>
                             <th class="col-product">Produk</th>
                             <th>Qty</th>
+                            <th>Estimasi Selesai</th>
                             <th>Total</th>
                             <th>Pembayaran</th>
                             <th class="status-head">Status</th>
@@ -733,6 +745,7 @@
                                 <td>{{ $order->order_code }}</td>
                                 <td class="col-product"><span>{{ $order->product_name ?: '-' }}</span></td>
                                 <td>{{ number_format((int) $order->total_pcs, 0, ',', '.') }}</td>
+                                <td>{{ $order->estimated_finish_date ? \Carbon\Carbon::parse($order->estimated_finish_date)->format('d/m/Y') : '-' }}</td>
                                 <td>Rp {{ number_format((float) $order->subtotal, 0, ',', '.') }}</td>
                                 <td>
                                     <div class="payment-cell">

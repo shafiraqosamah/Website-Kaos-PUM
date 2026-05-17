@@ -704,7 +704,7 @@
                 <tr><th>Produk</th><td>{{ $order->product_model ?: $order->product_name }}</td></tr>
                 <tr><th>Bahan</th><td>{{ $order->fabric }}</td></tr>
                 <tr><th>Teknik Sablon</th><td>{{ $order->production_type ?: '-' }}</td></tr>
-                <tr><th>Warna</th><td>{{ $order->dominant_color ?: '-' }}</td></tr>
+                <tr><th>Warna</th><td>{{ $order->dominant_color ?: '-' }}{{ $order->secondary_color ? ' / ' . $order->secondary_color : '' }}</td></tr>
                 <tr><th>Ukuran QTY</th><td>{{ $sizeBreakdown !== '' ? $sizeBreakdown : '-' }}</td></tr>
                 <tr><th>Status</th><td><span class="status-pill">{{ $payment->status }}</span></td></tr>
             </table>
@@ -753,7 +753,7 @@
             @else
                 <div class="settlement-alert">
                     <span>⚠️</span>
-                    <span>Pesanan memasuki tahap <strong>Finishing</strong>. Produksi tidak akan diselesaikan sebelum pelunasan dikonfirmasi.</span>
+                    <span>Pesanan memasuki tahap <strong>Steam & Pressing</strong>. Tahapan finishing tidak dapat dilakukan sebelum pelunasan terverifikasi.</span>
                 </div>
 
                 <div class="settlement-summary">

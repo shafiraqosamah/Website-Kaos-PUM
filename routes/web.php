@@ -10,12 +10,17 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\MidtransController;
 use App\Http\Controllers\ProductionController;
+use App\Http\Controllers\PublicTrackingController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SearchController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LandingController::class, 'index'])->name('home');
 Route::get('/katalog/{slug}', [LandingController::class, 'showCatalog'])->name('catalog.show');
+
+Route::get('/track', [PublicTrackingController::class, 'index'])->name('track.index');
+Route::post('/track', [PublicTrackingController::class, 'search'])->name('track.search');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
@@ -37,6 +42,7 @@ Route::middleware('auth')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/search', [SearchController::class, 'handle'])->name('search');
 
     Route::middleware('role:' . User::ROLE_CUSTOMER)->group(function (): void {
         Route::get('/customer/orders', [CustomerOrderController::class, 'index'])->name('customer.orders.index');
@@ -76,6 +82,8 @@ Route::middleware('auth')->group(function (): void {
 
     Route::middleware('role:' . User::ROLE_ADMIN . ',' . User::ROLE_FINANCE)->group(function (): void {
         Route::get('/reports/orders-balance', [ReportController::class, 'orders'])->name('reports.orders');
+        Route::get('/reports/orders-report', [ReportController::class, 'ordersReport'])->name('reports.orders-report');
+        Route::get('/reports/orders-report/export', [ReportController::class, 'exportOrders'])->name('reports.orders-report.export');
         Route::get('/reports/orders-balance/{order}', [ReportController::class, 'showOrder'])->name('reports.orders.show');
         Route::post('/reports/orders-balance/{order}/verify', [ReportController::class, 'verifyOrder'])->name('reports.orders.verify');
         Route::post('/reports/orders-balance/{order}/revision', [ReportController::class, 'requestRevision'])->name('reports.orders.revision');
@@ -83,10 +91,12 @@ Route::middleware('auth')->group(function (): void {
 
     Route::middleware('role:' . User::ROLE_ADMIN . ',' . User::ROLE_FINANCE . ',' . User::ROLE_MANAGER . ',' . User::ROLE_OWNER)->group(function (): void {
         Route::get('/reports/finance-ledger', [ReportController::class, 'finance'])->name('reports.finance');
+        Route::get('/reports/finance-ledger/export', [ReportController::class, 'exportFinance'])->name('reports.finance.export');
     });
 
     Route::middleware('role:' . User::ROLE_ADMIN . ',' . User::ROLE_PRODUCTION . ',' . User::ROLE_MANAGER . ',' . User::ROLE_OWNER)->group(function (): void {
         Route::get('/reports/production-monthly', [ReportController::class, 'production'])->name('reports.production');
+        Route::get('/reports/production-monthly/export', [ReportController::class, 'exportProduction'])->name('reports.production.export');
     });
 
     Route::middleware('role:' . User::ROLE_MANAGER . ',' . User::ROLE_OWNER)->group(function (): void {
@@ -104,5 +114,10 @@ Route::middleware('auth')->group(function (): void {
         Route::put('/admin/materials/{material}', [AdminMaterialController::class, 'update'])->name('admin.materials.update');
         Route::patch('/admin/materials/{material}/toggle', [AdminMaterialController::class, 'toggle'])->name('admin.materials.toggle');
         Route::delete('/admin/materials/{material}', [AdminMaterialController::class, 'destroy'])->name('admin.materials.destroy');
+
+        // Color management for materials
+        Route::post('/admin/materials/{material}/colors/sync', [AdminMaterialController::class, 'syncColors'])->name('admin.materials.colors.sync');
+        Route::post('/admin/materials/{material}/colors', [AdminMaterialController::class, 'storeColor'])->name('admin.materials.colors.store');
+        Route::delete('/admin/colors/{color}', [AdminMaterialController::class, 'destroyColor'])->name('admin.colors.destroy');
     });
 });

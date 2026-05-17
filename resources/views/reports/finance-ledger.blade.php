@@ -13,6 +13,9 @@
                 <input id="month" type="month" name="month" value="{{ $monthInput }}">
             </div>
             <button class="btn btn-brand" type="submit">Tampilkan</button>
+            <a href="{{ route('reports.finance.export', ['month' => $monthInput]) }}" style="align-self:end; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; background-color:#1e7e34; color:#ffffff; border:1px solid #1c7430; padding:0.4rem 0.6rem; border-radius:4px; font-size:0.85rem; font-weight:600;">
+                ⇩ Excel
+            </a>
         </form>
     </div>
 

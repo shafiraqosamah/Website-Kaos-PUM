@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Material;
 use App\Models\Order;
 use App\Models\Payment;
 use Illuminate\Http\RedirectResponse;
@@ -10,7 +11,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
+use App\Mail\OrderCreatedMail;
 use Midtrans\Config;
 use Midtrans\Transaction;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -19,17 +22,13 @@ class CustomerOrderController extends Controller
 {
     private const SIZES = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
     private const MATERIALS = [
-        'Drill',
-        'Taipan',
-        'Tropical',
-        'Oxford',
-        'Twill',
-        'Ribstop',
-        'Lacoste Pique',
         'Cotton Combed 30s',
+        'Cotton Combed 24s',
         'Cotton Combed 20s',
+        'Cotton Bamboo',
+        'Lacoste Cotton Pique',
+        'Lacoste CVC',
         'Drifit',
-        'Lainnya',
     ];
 
     private const TYPES = ['Sablon Manual', 'DTF (Direct to Film)', 'Bordiran', 'Printing'];
@@ -43,19 +42,13 @@ class CustomerOrderController extends Controller
         'Printing' => 7000,
     ];
     private const MATERIAL_BASE_PRICES = [
-        'Drill' => 115000,
-        'Taipan' => 120000,
-        'Tropical' => 110000,
-        'Oxford' => 125000,
-        'Twill' => 118000,
-        'Ribstop' => 130000,
-        'Lacoste Pique' => 140000,
         'Cotton Combed 30s' => 85000,
-        'Cotton Combed 20s' => 95000,
         'Cotton Combed 24s' => 95000,
-        'Cotton Combed 24a' => 95000,
+        'Cotton Combed 20s' => 95000,
+        'Cotton Bamboo' => 105000,
+        'Lacoste Cotton Pique' => 140000,
+        'Lacoste CVC' => 130000,
         'Drifit' => 105000,
-        'Lainnya' => 100000,
     ];
 
     public function index(Request $request): View
@@ -64,6 +57,12 @@ class CustomerOrderController extends Controller
 
         $orders = Order::with(['sizes', 'payments', 'productionSteps'])
             ->where('user_id', $request->user()->id)
+            ->when($request->search, function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('order_code', 'like', "%{$request->search}%")
+                      ->orWhere('product_name', 'like', "%{$request->search}%");
+                });
+            })
             ->latest()
             ->paginate(10);
 
@@ -108,11 +107,10 @@ class CustomerOrderController extends Controller
                 $normalizedFabricKey = strtolower($rawFabric);
                 $normalizedFabric = $fabricMap[$normalizedFabricKey] ?? $rawFabric;
 
-                if (! in_array($normalizedFabric, $materials, true)) {
-                    $catalogPreset['other_fabric'] = $rawFabric;
-                    $catalogPreset['fabric'] = 'Lainnya';
-                } else {
+                if (in_array($normalizedFabric, $materials, true)) {
                     $catalogPreset['fabric'] = $normalizedFabric;
+                } else {
+                    $catalogPreset['fabric'] = $materials[0] ?? 'Cotton Combed 30s';
                 }
             }
 
@@ -178,7 +176,6 @@ class CustomerOrderController extends Controller
             'customer_name' => ['required', 'string', 'max:150'],
             'total_pcs' => ['required', 'integer', 'min:60'],
             'fabric' => ['required', 'in:' . implode(',', $materials)],
-            'other_fabric' => ['nullable', 'string', 'max:150', 'required_if:fabric,Lainnya'],
             'production_type' => ['required', 'in:' . implode(',', $types)],
             'production_qty' => ['required', 'integer', 'min:1'],
             'design_position' => ['required', 'string', 'max:150'],
@@ -186,6 +183,7 @@ class CustomerOrderController extends Controller
             'product_model' => ['required', 'in:' . implode(',', $models)],
             'sleeve_type' => ['required', 'in:' . implode(',', $sleeves)],
             'dominant_color' => ['required', 'string', 'max:80'],
+            'secondary_color' => ['nullable', 'string', 'max:80', 'required_if:product_model,Raglan'],
             'unit_price' => ['required', 'numeric', 'min:85000', 'max:200000'],
             'estimated_finish_date' => ['required', 'date', 'after_or_equal:' . $minimumFinishDate],
             'payment_type' => ['required', 'in:dp,full'],
@@ -219,9 +217,7 @@ class CustomerOrderController extends Controller
             ])->withInput();
         }
 
-        $resolvedFabric = $validated['fabric'] === 'Lainnya'
-            ? (string) ($validated['other_fabric'] ?? '')
-            : $validated['fabric'];
+        $resolvedFabric = $validated['fabric'];
 
         $resolvedDesignPosition = $validated['design_position'] === 'Lainnya'
             ? (string) ($validated['design_position_other'] ?? '')
@@ -257,6 +253,10 @@ class CustomerOrderController extends Controller
                 'Model: ' . $validated['product_model'],
                 'Ukuran Lengan: ' . $validated['sleeve_type'],
             ];
+            
+            if (!empty($validated['secondary_color'])) {
+                $detailNotes[] = 'Warna Lengan: ' . $validated['secondary_color'];
+            }
 
             if ($sizeSurcharge > 0) {
                 $detailNotes[] = 'Tambahan ukuran XXL/XXXL: Rp' . number_format($sizeSurcharge, 0, ',', '.');
@@ -281,6 +281,7 @@ class CustomerOrderController extends Controller
                 'product_model' => $validated['product_model'],
                 'sleeve_type' => $validated['sleeve_type'],
                 'dominant_color' => $validated['dominant_color'],
+                'secondary_color' => $validated['secondary_color'] ?? null,
                 'design_file' => $designFrontPath,
                 'design_front_file' => $designFrontPath,
                 'design_back_file' => $designBackPath,
@@ -314,9 +315,13 @@ class CustomerOrderController extends Controller
             $createdPayment = $payment;
         });
 
+        if ($createdOrder && $request->user()->email) {
+            Mail::to($request->user()->email)->send(new OrderCreatedMail($createdOrder));
+        }
+
         return redirect()
             ->route('customer.orders.index')
-            ->with('success', 'Pesanan custom berhasil dikirim. Silakan pantau status verifikasi admin di Riwayat Pesanan.');
+            ->with('success', 'Pesanan custom berhasil dikirim. Silakan pantau status verifikasi admin max 2x24 jam di Riwayat Pesanan.');
     }
 
     public function show(Request $request, Order $order): View
@@ -696,103 +701,12 @@ class CustomerOrderController extends Controller
      */
     private function materialCatalogData(): array
     {
-        return [
-            'Drill' => [
-                'title' => 'Tebal & Kokoh',
-                'description' => 'Kain tenun diagonal yang kuat dan kaku. Cocok untuk seragam kerja lapangan, baju dinas, dan workwear industri berat.',
-                'tags' => ['Tahan lama', 'Anti-robek', 'Formal', 'Heavy duty'],
-                'colors' => [
-                    ['name' => 'Hitam', 'hex' => '#1E1E1E'],
-                    ['name' => 'Navy', 'hex' => '#223A70'],
-                    ['name' => 'Abu gelap', 'hex' => '#575757'],
-                    ['name' => 'Hijau militer', 'hex' => '#49653A'],
-                    ['name' => 'Coklat tua', 'hex' => '#5A3A1D'],
-                    ['name' => 'Krem', 'hex' => '#DCCDA6'],
-                    ['name' => 'Abu medium', 'hex' => '#8B8B8B'],
-                    ['name' => 'Putih', 'hex' => '#F7F7F7'],
-                ],
-            ],
-            'Taipan' => [
-                'title' => 'Semi-formal',
-                'description' => 'Bahan dengan tampilan rapi dan kokoh, cocok untuk seragam kantor, instansi, dan kebutuhan semi-formal.',
-                'tags' => ['Rapi', 'Nyaman', 'Semi formal', 'Seragam kantor'],
-                'colors' => [
-                    ['name' => 'Hitam', 'hex' => '#1E1E1E'],
-                    ['name' => 'Navy', 'hex' => '#223A70'],
-                    ['name' => 'Abu', 'hex' => '#7C7C7C'],
-                    ['name' => 'Coklat', 'hex' => '#7B4B26'],
-                    ['name' => 'Krem', 'hex' => '#DCCDA6'],
-                    ['name' => 'Putih', 'hex' => '#F7F7F7'],
-                ],
-            ],
-            'Tropical' => [
-                'title' => 'Ringan & Adem',
-                'description' => 'Bahan yang ringan dan nyaman dipakai untuk aktivitas harian, pelatihan, dan seragam kerja indoor.',
-                'tags' => ['Ringan', 'Adem', 'Fleksibel', 'Nyaman dipakai'],
-                'colors' => [
-                    ['name' => 'Hitam', 'hex' => '#1E1E1E'],
-                    ['name' => 'Navy', 'hex' => '#223A70'],
-                    ['name' => 'Abu gelap', 'hex' => '#5C5C5C'],
-                    ['name' => 'Hijau', 'hex' => '#4F7D4D'],
-                    ['name' => 'Putih', 'hex' => '#F7F7F7'],
-                ],
-            ],
-            'Oxford' => [
-                'title' => 'Premium Formal',
-                'description' => 'Tekstur halus dan tampilan formal. Cocok untuk kemeja kerja, seragam kantor, dan kebutuhan presentable.',
-                'tags' => ['Formal', 'Halus', 'Presentable', 'Kemeja kerja'],
-                'colors' => [
-                    ['name' => 'Putih', 'hex' => '#F7F7F7'],
-                    ['name' => 'Biru muda', 'hex' => '#9CC8F2'],
-                    ['name' => 'Navy', 'hex' => '#223A70'],
-                    ['name' => 'Abu', 'hex' => '#7C7C7C'],
-                    ['name' => 'Coklat', 'hex' => '#7B4B26'],
-                ],
-            ],
-            'Twill' => [
-                'title' => 'Kuat & Berat',
-                'description' => 'Bahan tebal dengan serat rapat, cocok untuk seragam lapangan dan pakaian kerja yang membutuhkan durabilitas tinggi.',
-                'tags' => ['Kuat', 'Berat', 'Durable', 'Lapangan'],
-                'colors' => [
-                    ['name' => 'Hitam', 'hex' => '#1E1E1E'],
-                    ['name' => 'Navy', 'hex' => '#223A70'],
-                    ['name' => 'Coklat tua', 'hex' => '#5A3A1D'],
-                    ['name' => 'Krem', 'hex' => '#DCCDA6'],
-                    ['name' => 'Abu', 'hex' => '#7C7C7C'],
-                    ['name' => 'Putih', 'hex' => '#F7F7F7'],
-                ],
-            ],
-            'Ribstop' => [
-                'title' => 'Anti-sobek',
-                'description' => 'Memiliki struktur serat kotak yang membantu ketahanan kain, cocok untuk workwear dan seragam teknis.',
-                'tags' => ['Anti-sobek', 'Teknis', 'Workwear', 'Kokoh'],
-                'colors' => [
-                    ['name' => 'Hitam', 'hex' => '#1E1E1E'],
-                    ['name' => 'Navy', 'hex' => '#223A70'],
-                    ['name' => 'Hijau militer', 'hex' => '#49653A'],
-                    ['name' => 'Coklat tua', 'hex' => '#5A3A1D'],
-                    ['name' => 'Abu', 'hex' => '#7C7C7C'],
-                    ['name' => 'Krem', 'hex' => '#DCCDA6'],
-                ],
-            ],
-            'Lacoste Pique' => [
-                'title' => 'Corporate Premium',
-                'description' => 'Tekstur pique khas poloshirt, memberi kesan premium untuk perusahaan, kampus, dan instansi.',
-                'tags' => ['Premium', 'Corporate', 'Poloshirt', 'Bordir cocok'],
-                'colors' => [
-                    ['name' => 'Hitam', 'hex' => '#1E1E1E'],
-                    ['name' => 'Putih', 'hex' => '#F7F7F7'],
-                    ['name' => 'Navy', 'hex' => '#223A70'],
-                    ['name' => 'Hijau', 'hex' => '#4F7D4D'],
-                    ['name' => 'Merah marun', 'hex' => '#7A1F2B'],
-                    ['name' => 'Coklat', 'hex' => '#7B4B26'],
-                    ['name' => 'Abu', 'hex' => '#7C7C7C'],
-                ],
-            ],
+        // Static metadata for each material (not managed by admin)
+        $staticMeta = [
             'Cotton Combed 30s' => [
                 'title' => 'Tipis & Adem',
                 'description' => 'Sangat sejuk dan menyerap keringat, namun kainnya tipis dan rentan susut.',
-                'image' => 'images/Bahan/cotton30s.png',
+                'image' => 'images/bahan/cotton30s.png',
                 'tags' => ['100% Katun', 'Tipis & Adem', 'Menyerap keringat', 'Rentan susut'],
                 'suitable_for' => ['Kaos distro', 'Pakaian harian', 'Kaos event', 'Merchandise brand'],
                 'design_application' => [
@@ -801,57 +715,115 @@ class CustomerOrderController extends Controller
                     'Tidak disarankan: Bordir (rawan bolong/berkerut)',
                     'Tidak bisa: Printing/Sublim di katun',
                 ],
-                'colors' => [
-                    ['name' => 'Hitam', 'hex' => '#1E1E1E'],
-                    ['name' => 'Putih', 'hex' => '#F7F7F7'],
-                    ['name' => 'Navy', 'hex' => '#223A70'],
-                    ['name' => 'Merah', 'hex' => '#B21F2D'],
-                    ['name' => 'Hijau', 'hex' => '#4F7D4D'],
-                    ['name' => 'Krem', 'hex' => '#DCCDA6'],
-                    ['name' => 'Abu', 'hex' => '#7C7C7C'],
+            ],
+            'Cotton Combed 24s' => [
+                'title' => 'Ketebalan Sedang',
+                'description' => 'Ketebalan pas (sedang), tidak menerawang, sangat nyaman, dan menyerap keringat dengan baik.',
+                'image' => 'images/bahan/cotton24s.png',
+                'tags' => ['100% Katun', 'Ketebalan Sedang', 'Tidak Menerawang', 'Menyerap Keringat'],
+                'suitable_for' => ['Kaos gathering keluarga', 'Kaos komunitas', 'Merchandise premium'],
+                'design_application' => [
+                    'Cocok: Sablon manual',
+                    'Cocok: DTF',
+                    'Bisa: Bordir (khusus logo kecil)',
                 ],
             ],
             'Cotton Combed 20s' => [
-                'title' => 'Heavy Weight',
-                'description' => 'Lebih tebal dan berat, cocok untuk kaos premium yang ingin terasa solid dan tidak menerawang.',
-                'tags' => ['Tebal', 'Premium', 'Tidak menerawang', 'Solid'],
-                'colors' => [
-                    ['name' => 'Hitam', 'hex' => '#1E1E1E'],
-                    ['name' => 'Putih', 'hex' => '#F7F7F7'],
-                    ['name' => 'Navy', 'hex' => '#223A70'],
-                    ['name' => 'Merah', 'hex' => '#B21F2D'],
-                    ['name' => 'Hijau', 'hex' => '#4F7D4D'],
-                    ['name' => 'Abu gelap', 'hex' => '#5C5C5C'],
+                'title' => 'Sangat Tebal & Awet',
+                'description' => 'Bahan paling tebal dan awet, namun jatuhnya kaku, berat, dan cukup panas jika dipakai siang hari.',
+                'image' => 'images/bahan/cotton20s.png',
+                'tags' => ['100% Katun', 'Sangat Tebal', 'Kaku & Kuat', 'Agak Panas'],
+                'suitable_for' => ['Kaos distro gaya oversize', 'Kaos event lapangan', 'Pakaian cuaca dingin'],
+                'design_application' => [
+                    'Cocok: Sablon manual',
+                    'Cocok: DTF',
+                    'Cocok: Bordir',
+                ],
+            ],
+            'Cotton Bamboo' => [
+                'title' => 'Anti-Bakteri & Halus',
+                'description' => 'Sangat halus, sejuk, dan memiliki sifat anti-bakteri (tidak mudah bau), namun kainnya cukup tipis.',
+                'image' => 'images/bahan/cottonbamboo.png',
+                'tags' => ['Katun & Bambu', 'Sangat Halus', 'Anti-Bakteri', 'Kain Tipis'],
+                'suitable_for' => ['Kaos premium', 'Pakaian kulit sensitif', 'Kaos harian eksklusif'],
+                'design_application' => [
+                    'Cocok: DTF',
+                    'Cocok: Sablon manual (tinta discharge)',
+                    'Tidak disarankan: Bordir (rawan berkerut)',
+                ],
+            ],
+            'Lacoste Cotton Pique' => [
+                'title' => 'Pori Polo Premium',
+                'description' => 'Tekstur pori khas polo, sangat lembut dan menyerap keringat, namun sedikit rawan susut.',
+                'image' => 'images/bahan/lacostepq.png',
+                'tags' => ['100% Katun', 'Pori-pori Polo', 'Lembut & Adem', 'Rawan Susut'],
+                'suitable_for' => ['Kaos polo premium', 'Seragam kantor semi-formal', 'Pakaian golf atau tenis'],
+                'design_application' => [
+                    'Wajib: Bordir komputer',
+                    'Tidak disarankan: Sablon manual atau DTF (hasil pecah karena pori kain)',
+                ],
+            ],
+            'Lacoste CVC' => [
+                'title' => 'Awet & Tidak Kusut',
+                'description' => 'Bahan polo yang sangat awet, tidak mudah kusut, tidak rawan susut, dengan tingkat adem yang standar.',
+                'image' => 'images/bahan/lacostecvc.png',
+                'tags' => ['Katun & Poliester', 'Awet & Kuat', 'Tidak Mudah Kusut', 'Polo Standar'],
+                'suitable_for' => ['Seragam polo perusahaan', 'Kaos promosi', 'Pakaian dinas lapangan'],
+                'design_application' => [
+                    'Wajib: Bordir komputer',
+                    'Tidak disarankan: Sablon manual atau DTF',
                 ],
             ],
             'Drifit' => [
                 'title' => 'Sport Performance',
-                'description' => 'Material ringan dan cepat kering, cocok untuk jersey, event olahraga, dan aktivitas outdoor.',
-                'tags' => ['Cepat kering', 'Sport', 'Ringan', 'Outdoor'],
-                'colors' => [
-                    ['name' => 'Hitam', 'hex' => '#1E1E1E'],
-                    ['name' => 'Navy', 'hex' => '#223A70'],
-                    ['name' => 'Abu', 'hex' => '#7C7C7C'],
-                    ['name' => 'Putih', 'hex' => '#F7F7F7'],
-                    ['name' => 'Merah', 'hex' => '#B21F2D'],
-                    ['name' => 'Hijau', 'hex' => '#4F7D4D'],
-                    ['name' => 'Tosca', 'hex' => '#1CA4BC'],
-                ],
-            ],
-            'Lainnya' => [
-                'title' => 'Custom Request',
-                'description' => 'Pilih jika bahan yang Anda inginkan belum tersedia di daftar utama. Tim kami akan menyesuaikan spesifikasi yang paling mendekati.',
-                'tags' => ['Custom', 'Menyesuaikan', 'Request khusus', 'Konsultasi'],
-                'colors' => [
-                    ['name' => 'Hitam', 'hex' => '#1E1E1E'],
-                    ['name' => 'Putih', 'hex' => '#F7F7F7'],
-                    ['name' => 'Navy', 'hex' => '#223A70'],
-                    ['name' => 'Abu', 'hex' => '#7C7C7C'],
-                    ['name' => 'Krem', 'hex' => '#DCCDA6'],
-                    ['name' => 'Custom', 'hex' => '#C8A949'],
+                'description' => 'Ringan, lentur, dan cepat kering (quick dry), namun licin dan kurang cocok untuk pakaian harian.',
+                'image' => 'images/bahan/drifit.png',
+                'tags' => ['Sintetis Berpori', 'Cepat Kering', 'Lentur & Ringan', 'Licin'],
+                'suitable_for' => ['Jersey sepak bola / futsal', 'Kaos lari atau sepeda', 'Pakaian senam'],
+                'design_application' => [
+                    'Wajib: Printing / Sublimasi',
+                    'Cocok: Sablon Polyflex (karet pres)',
+                    'Tidak disarankan: Bordir atau Sablon manual',
                 ],
             ],
         ];
+
+        // Default fallback colors if a material has none assigned in DB
+        $defaultColors = [
+            ['name' => 'Hitam', 'hex' => '#1E1E1E'],
+            ['name' => 'Putih', 'hex' => '#F7F7F7'],
+            ['name' => 'Navy', 'hex' => '#223A70'],
+        ];
+
+        // Load colors from database
+        try {
+            $materialsWithColors = Material::query()
+                ->where('is_active', true)
+                ->with('colors')
+                ->get();
+
+            $dbColorMap = [];
+            foreach ($materialsWithColors as $material) {
+                if ($material->colors->isNotEmpty()) {
+                    $dbColorMap[$material->name] = $material->colors->map(fn ($color) => [
+                        'name' => $color->name,
+                        'hex' => $color->hex_code ?? '#CCCCCC',
+                    ])->values()->all();
+                }
+            }
+        } catch (\Throwable $e) {
+            report($e);
+            $dbColorMap = [];
+        }
+
+        // Merge: static metadata + DB colors
+        $catalog = [];
+        foreach ($staticMeta as $materialName => $meta) {
+            $meta['colors'] = $dbColorMap[$materialName] ?? $defaultColors;
+            $catalog[$materialName] = $meta;
+        }
+
+        return $catalog;
     }
 
     /**

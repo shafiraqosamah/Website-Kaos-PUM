@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('header_title', 'Data Pembayaran')
+
 @section('content')
 @php
     $paymentTypeLabel = static function (string $method): string {

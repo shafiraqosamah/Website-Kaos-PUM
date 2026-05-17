@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('header_title', 'Dashboard')
+
 @section('content')
 @php
     $needsAction = $pendingPayments > 0;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Color;
 use App\Models\Material;
 use App\Models\Order;
 use Illuminate\Http\RedirectResponse;
@@ -17,7 +18,7 @@ class AdminMaterialController extends Controller
         $search = trim((string) $request->query('q', ''));
         $status = (string) $request->query('status', 'all');
 
-        $query = Material::query()->orderBy('sort_order')->orderBy('id');
+        $query = Material::query()->with('colors')->orderBy('sort_order')->orderBy('id');
 
         if ($search !== '') {
             $query->where(function ($builder) use ($search): void {
@@ -100,8 +101,20 @@ class AdminMaterialController extends Controller
 
     public function edit(Material $material): View
     {
+        $material->load('colors');
+
+        $allColors = Color::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        $assignedColorIds = $material->colors->pluck('id')->all();
+
         return view('admin.materials.edit', [
             'material' => $material,
+            'allColors' => $allColors,
+            'assignedColorIds' => $assignedColorIds,
         ]);
     }
 
@@ -129,5 +142,91 @@ class AdminMaterialController extends Controller
         $material->delete();
 
         return redirect()->route('admin.materials.index')->with('success', 'Bahan berhasil dihapus.');
+    }
+
+    /**
+     * Sync assigned colors for a material (checkbox form).
+     */
+    public function syncColors(Request $request, Material $material): RedirectResponse
+    {
+        $validated = $request->validate([
+            'color_ids' => ['nullable', 'array'],
+            'color_ids.*' => ['integer', 'exists:colors,id'],
+        ]);
+
+        $colorIds = $validated['color_ids'] ?? [];
+
+        $syncData = [];
+        foreach ($colorIds as $index => $colorId) {
+            $syncData[(int) $colorId] = ['sort_order' => $index + 1];
+        }
+
+        $material->colors()->sync($syncData);
+
+        return redirect()
+            ->route('admin.materials.edit', $material)
+            ->with('success', 'Warna bahan berhasil diperbarui. (' . count($colorIds) . ' warna aktif)');
+    }
+
+    /**
+     * Create a new global color and assign it to the material.
+     */
+    public function storeColor(Request $request, Material $material): RedirectResponse
+    {
+        $validated = $request->validate([
+            'color_name' => ['required', 'string', 'max:120'],
+            'hex_code' => ['required', 'string', 'max:10', 'regex:/^#[0-9A-Fa-f]{3,8}$/'],
+        ]);
+
+        $name = trim((string) $validated['color_name']);
+        $hexCode = trim((string) $validated['hex_code']);
+
+        // Check if color with this name already exists
+        $existing = Color::where('name', $name)->first();
+
+        if ($existing) {
+            // Just assign it to the material if not already
+            if (! $material->colors()->where('color_id', $existing->id)->exists()) {
+                $nextSort = (int) $material->colors()->max('material_colors.sort_order') + 1;
+                $material->colors()->attach($existing->id, ['sort_order' => $nextSort]);
+            }
+
+            return redirect()
+                ->route('admin.materials.edit', $material)
+                ->with('success', "Warna '{$name}' sudah ada dan berhasil ditambahkan ke bahan ini.");
+        }
+
+        $nextGlobalSort = (int) Color::max('sort_order') + 1;
+
+        $color = Color::create([
+            'name' => $name,
+            'slug' => Str::slug($name),
+            'hex_code' => $hexCode,
+            'sort_order' => $nextGlobalSort,
+            'is_active' => true,
+        ]);
+
+        $nextSort = (int) $material->colors()->max('material_colors.sort_order') + 1;
+        $material->colors()->attach($color->id, ['sort_order' => $nextSort]);
+
+        return redirect()
+            ->route('admin.materials.edit', $material)
+            ->with('success', "Warna baru '{$name}' berhasil dibuat dan ditambahkan ke bahan ini.");
+    }
+
+    /**
+     * Delete a global color (only if not used).
+     */
+    public function destroyColor(Color $color): RedirectResponse
+    {
+        $materialCount = $color->materials()->count();
+
+        if ($materialCount > 0) {
+            return back()->withErrors(['color' => "Warna '{$color->name}' masih digunakan di {$materialCount} bahan. Hapus dari semua bahan terlebih dahulu."]);
+        }
+
+        $color->delete();
+
+        return back()->with('success', "Warna '{$color->name}' berhasil dihapus.");
     }
 }

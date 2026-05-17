@@ -320,6 +320,7 @@
                     <th>Nama Bahan</th>
                     <th>Kode Bahan</th>
                     <th>Harga /pcs</th>
+                    <th>Warna</th>
                     <th class="status-col">Status Tampil</th>
                     <th class="action-col">Aksi Status</th>
                     <th class="action-col">Aksi Hapus</th>
@@ -341,6 +342,22 @@
                         </td>
                         <td>
                             <span>Rp {{ number_format((int) ($material->base_price ?? 0), 0, ',', '.') }}</span>
+                        </td>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:3px; flex-wrap:wrap;">
+                                @forelse ($material->colors->take(6) as $color)
+                                    <span
+                                        title="{{ $color->name }}"
+                                        style="width:16px; height:16px; border-radius:50%; background:{{ $color->hex_code ?? '#ccc' }}; border:1px solid rgba(0,0,0,0.1); display:inline-block;"
+                                    ></span>
+                                @empty
+                                    <span style="color:#a0b0c0; font-size:0.72rem;">—</span>
+                                @endforelse
+                                @if ($material->colors->count() > 6)
+                                    <span style="font-size:0.7rem; color:#6f86a0; font-weight:600;">+{{ $material->colors->count() - 6 }}</span>
+                                @endif
+                            </div>
+                            <span style="display:block; font-size:0.7rem; color:#8a9fb5; margin-top:2px;">{{ $material->colors->count() }} warna</span>
                         </td>
                         <td class="status-col">
                             <span class="status-pill {{ $material->is_active ? 'status-active' : 'status-inactive' }}">
@@ -372,7 +389,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" style="text-align:center; color:#7f96ae;">Belum ada data bahan.</td>
+                        <td colspan="9" style="text-align:center; color:#7f96ae;">Belum ada data bahan.</td>
                     </tr>
                 @endforelse
             </tbody>

@@ -11,6 +11,84 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @endif
     <style>
+        .floating-whatsapp {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background-color: #25d366;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+            text-decoration: none;
+            z-index: 9999;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .floating-whatsapp:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(37, 211, 102, 0.5);
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .floating-whatsapp svg {
+            width: 18px;
+            height: auto;
+            flex-shrink: 0;
+            fill: currentColor;
+        }
+
+        /* Fix Laravel Pagination */
+        nav[role="navigation"] {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        nav[role="navigation"] > div:last-child > div:last-child > span {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+        nav[role="navigation"] span.relative.inline-flex, 
+        nav[role="navigation"] a.relative.inline-flex {
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 0.85rem !important;
+            text-decoration: none !important;
+            line-height: 1 !important;
+            border-radius: 6px !important;
+            border: 1px solid #d7e4ee;
+            background: #fff;
+            color: #0d2749 !important;
+            min-height: 38px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        nav[role="navigation"] a.relative.inline-flex:hover {
+            background: #f8fafc;
+            border-color: #99ccd7;
+        }
+        nav[role="navigation"] span[aria-current="page"] > span.relative.inline-flex {
+            background: #0d2749 !important;
+            color: #fff !important;
+            border-color: #0d2749;
+            font-weight: 700;
+        }
+        nav[role="navigation"] svg.w-5.h-5 {
+            width: 1.2rem;
+            height: 1.2rem;
+            display: block;
+        }
+
         @font-face {
             font-family: 'DM Sans';
             font-style: normal;
@@ -487,6 +565,16 @@
             font-size: 0.71rem;
         }
 
+        .sidebar-heading {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            font-weight: 800;
+            color: #6d8496;
+            letter-spacing: 0.05em;
+            padding: 1.2rem 1rem 0.4rem;
+            margin: 0;
+        }
+
         .customer-sidebar .nav-count {
             margin-left: auto;
             min-width: 20px;
@@ -592,24 +680,41 @@
 
         .customer-shell-topbar {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            gap: 0.8rem;
-            flex-wrap: wrap;
+            justify-content: flex-start;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             background: linear-gradient(180deg, #122746 0%, #10223f 100%);
-            border: 1px solid #193657;
-            border-radius: 0;
-            border-left: 0;
-            border-right: 0;
-            border-top: 0;
+            border-bottom: 1px solid #193657;
             margin-bottom: 0;
-            padding: 0.48rem 0.95rem;
-            min-height: var(--customer-topbar-height);
+            padding: 0 1.5rem 0 0;
+            height: var(--customer-topbar-height);
             z-index: 80;
+        }
+
+        .topbar-search input:focus {
+            background: rgba(255,255,255,0.1) !important;
+            border-color: rgba(255,255,255,0.4) !important;
+        }
+
+        .topbar-notif-btn:hover {
+            background: rgba(255,255,255,0.1) !important;
+        }
+
+        .notif-dropdown {
+            transform-origin: top right;
+            animation: dropdownFadeIn 0.2s ease-out;
+        }
+
+        @keyframes dropdownFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .topbar-profile:hover {
+            opacity: 0.9;
         }
 
         .customer-shell-topbar .brand {
@@ -805,6 +910,9 @@
         .status-danger { background: #fee8e8; color: #9a1d1d; }
         .status-info { background: #e6f4ff; color: #0d5f8f; }
         .status-accent { background: #f3ecff; color: #5a3893; }
+        .status-primary { background: #ebefff; color: #2045a1; }
+        .status-teal { background: #e0f5f2; color: #106c64; }
+        .status-dark { background: #e6eaef; color: #1d2c3e; }
 
         .metric {
             font-size: 1.26rem;
@@ -901,20 +1009,80 @@
             }
         @endphp
         <div class="customer-shell-topbar">
-            <a class="brand" href="{{ ($isCustomer ?? auth()->user()->hasRole('customer')) ? route('home') : route('dashboard') }}"><span class="brand-accent">PT Panji</span>Usaha Mulia</a>
-            <div class="customer-topbar-right">
-                <span class="customer-role-badge">
-                    {{ match (strtolower((string) auth()->user()->role)) {
-                        'customer' => '👤 Customer',
-                        'finance' => '💰 Finance',
-                        'production' => '🏭 Produksi',
-                        'admin' => '⚙️ Admin',
-                        'manager' => '👔 Manager',
-                        'owner' => '👑 Owner',
-                        default => ucfirst((string) auth()->user()->role),
-                    } }}
-                </span>
-                <span class="customer-name">{{ strtolower(auth()->user()->name) }}</span>
+            <!-- Header Kiri (Logo) -->
+            <div class="topbar-left" style="width: var(--app-sidebar-width); border-right: 1px solid rgba(255,255,255,0.08); height: 100%; display: flex; align-items: center; padding-left: 1.5rem; flex-shrink: 0;">
+                <a class="brand" href="{{ route('home') }}" style="margin: 0; padding: 0;">
+                    <span class="brand-accent">PT Panji</span>Usaha Mulia
+                </a>
+            </div>
+
+            <!-- Header Kanan (Topbar Utama) -->
+            <div class="topbar-right-content" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding-left: 1.5rem;">
+                <!-- Judul Halaman -->
+                <div class="topbar-title" style="color: #fff; font-size: 1.18rem; font-weight: 700; letter-spacing: 0.01em; font-family: 'Playfair Display', serif;">
+                    @yield('header_title', $title ?? 'Dashboard')
+                </div>
+
+                <!-- Tools (Search, Notif, Profile) -->
+                <div class="topbar-tools" style="display: flex; align-items: center; gap: 1.5rem;">
+                    <!-- Search Bar -->
+                    <div class="topbar-search" style="position: relative;">
+                        <form action="/search" method="GET" style="margin: 0;">
+                            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #8fa8c0; font-size: 0.9rem;">🔍︎</span>
+                            <input type="text" name="q" value="{{ request('q', request('search')) }}" placeholder="Cari pesanan..." style="padding: 0.5rem 1rem 0.5rem 2.4rem; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.42); background: rgba(255, 255, 255, 0.09); color: #fff; font-size: 0.85rem; width: 240px; outline: none; transition: background 0.2s, border-color 0.2s;">
+                        </form>
+                    </div>
+
+                    <!-- Notification Bell -->
+                    <div class="topbar-notif-wrapper" style="position: relative;">
+                        @php
+                            $notifs = $globalNotifications ?? collect([]);
+                            $notifCount = $notifs->count();
+                        @endphp
+                        <button class="topbar-notif-btn" onclick="document.getElementById('notifDropdown').style.display = document.getElementById('notifDropdown').style.display === 'none' ? 'block' : 'none';" style="background: none; border: none; color: #fff; font-size: 1.25rem; cursor: pointer; padding: 0.4rem; border-radius: 50%; transition: background 0.2s; position: relative; display: flex; align-items: center; justify-content: center; height: 38px; width: 38px;">
+                            🔔
+                            @if($notifCount > 0)
+                                <span class="notif-badge" style="position: absolute; top: -2px; right: -2px; background: #d95f18; color: #fff; font-size: 0.6rem; font-weight: bold; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid #132141;">{{ $notifCount }}</span>
+                            @endif
+                        </button>
+                        <!-- Dropdown Notifikasi -->
+                        <div id="notifDropdown" class="notif-dropdown" style="display: none; position: absolute; top: calc(100% + 10px); right: -10px; background: #ffffff; width: 340px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); padding: 0; z-index: 1000; border: 1px solid #eaeaea; overflow: hidden;">
+                            <div style="padding: 1rem 1.2rem; border-bottom: 1px solid #eaeaea; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+                                <h4 style="margin: 0; font-size: 0.95rem; color: #132141; font-weight: 700;">Notifikasi</h4>
+                                @if($notifCount > 0)
+                                    <span style="font-size: 0.7rem; color: #d95f18; font-weight: 600; cursor: pointer;">Tandai semua dibaca</span>
+                                @endif
+                            </div>
+                            
+                            <div style="max-height: 350px; overflow-y: auto;">
+                                @forelse($notifs as $notif)
+                                    <a href="{{ $notif['url'] }}" style="display: flex; align-items: flex-start; gap: 0.8rem; padding: 1rem 1.2rem; border-bottom: 1px solid #f1f5f9; text-decoration: none; transition: background 0.2s;">
+                                        <div style="font-size: 1.2rem; flex-shrink: 0; padding-top: 0.1rem;">{{ $notif['icon'] }}</div>
+                                        <div style="font-size: 0.82rem; color: #334155; line-height: 1.4;">
+                                            {{ $notif['text'] }}
+                                        </div>
+                                    </a>
+                                @empty
+                                    <div style="font-size: 0.85rem; color: #64748b; text-align: center; padding: 2.5rem 1rem;">
+                                        <div style="font-size: 2.5rem; margin-bottom: 0.8rem; opacity: 0.2;">🔕</div>
+                                        Belum ada notifikasi baru.
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile Avatar -->
+                    <div class="topbar-profile" style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1.5rem;">
+                        <div style="text-align: right; display: flex; flex-direction: column;">
+                            <span style="color: #fff; font-size: 0.85rem; font-weight: 700; line-height: 1.2;">{{ strtolower(auth()->user()->name) }}</span>
+                            <span style="color: #8fa8c0; font-size: 0.7rem; font-weight: 600; line-height: 1.2;">{{ ucfirst(auth()->user()->role) }}</span>
+                        </div>
+                        <div class="avatar" style="width: 38px; height: 38px; border-radius: 50%; background: #d95f18; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem; box-shadow: 0 2px 8px rgba(217, 95, 24, 0.4);">
+                            {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -926,8 +1094,11 @@
                 </div>
 
                 <nav class="sidebar-nav">
+                    @if(! ($isCustomer ?? auth()->user()->hasRole('customer')))
+                        <div class="sidebar-heading">Utama</div>
+                    @endif
                     <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                        <span class="nav-ico">🏠</span>
+                        <span class="nav-ico"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-list" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5"/></svg></span>
                         <span class="nav-dot"></span>
                         Dashboard
                     </a>
@@ -957,7 +1128,7 @@
                             Data Pesanan
                         </a>
                         <a href="{{ route('finance.index') }}" class="{{ request()->routeIs('finance.*') ? 'active' : '' }}">
-                            <span class="nav-ico">🔍</span>
+                            <span class="nav-ico">💵</span>
                             <span class="nav-dot"></span>
                             Data Pembayaran
                             <span class="nav-count">{{ $financePendingCount ?? \App\Models\Payment::where('status', 'pending')->count() }}</span>
@@ -971,7 +1142,7 @@
                         <a href="{{ route('finance.index') }}" class="{{ request()->routeIs('finance.*') ? 'active' : '' }}">
                             <span class="nav-ico">💰</span>
                             <span class="nav-dot"></span>
-                            Data Pembayaran
+                            Pembayaran
                         </a>
                     @endif
 
@@ -979,38 +1150,35 @@
                         <a href="{{ route('production.index') }}" class="{{ request()->routeIs('production.*') ? 'active' : '' }}">
                             <span class="nav-ico">🏭</span>
                             <span class="nav-dot"></span>
-                            Daftar SPK & Produksi
+                            SPK & Produksi
                         </a>
                     @endif
 
                     @if (auth()->user()->hasRole('admin'))
                         <a href="{{ route('reports.orders') }}" class="{{ request()->routeIs('reports.orders') ? 'active' : '' }}">
-                            <span class="nav-ico">📊</span>
+                            <span class="nav-ico">🛍️</span>
                             <span class="nav-dot"></span>
-                            Data Pesanan
+                            Pemesanan
                         </a>
 
-                        @php($adminReportOpen = request()->routeIs('reports.orders', 'reports.finance', 'reports.production'))
-                        <details class="sidebar-dropdown" {{ $adminReportOpen ? 'open' : '' }}>
-                            <summary class="{{ $adminReportOpen ? 'active' : '' }}">
-                                <span class="nav-ico">🗂️</span>
-                                <span class="nav-dot"></span>
-                                Laporan
-                            </summary>
-                            <div class="sidebar-dropdown-items">
-                                <a href="{{ route('reports.orders') }}" class="{{ request()->routeIs('reports.orders') ? 'active' : '' }}">
-                                    Laporan Pemesanan
-                                </a>
-                                <a href="{{ route('reports.finance') }}" class="{{ request()->routeIs('reports.finance') ? 'active' : '' }}">
-                                    Laporan Pembayaran (Midtrans)
-                                </a>
-                                <a href="{{ route('reports.production') }}" class="{{ request()->routeIs('reports.production') ? 'active' : '' }}">
-                                    Laporan Produksi
-                                </a>
-                            </div>
-                        </details>
+                        <div class="sidebar-heading">Laporan</div>
+                        <a href="{{ route('reports.orders-report') }}" class="{{ request()->routeIs('reports.orders-report') ? 'active' : '' }}">
+                            <span class="nav-ico">📄</span>
+                            <span class="nav-dot"></span>
+                            Laporan Pemesanan
+                        </a>
+                        <a href="{{ route('reports.finance') }}" class="{{ request()->routeIs('reports.finance') ? 'active' : '' }}">
+                            <span class="nav-ico">📄</span>
+                            <span class="nav-dot"></span>
+                            Laporan Pembayaran (Midtrans)
+                        </a>
+                        <a href="{{ route('reports.production') }}" class="{{ request()->routeIs('reports.production') ? 'active' : '' }}">
+                            <span class="nav-ico">📄</span>
+                            <span class="nav-dot"></span>
+                            Laporan Produksi
+                        </a>
                     @elseif (auth()->user()->hasRole('manager', 'owner'))
-                        <a href="{{ route('reports.orders') }}" class="{{ request()->routeIs('reports.orders') ? 'active' : '' }}">
+                        <a href="{{ route('reports.orders-report') }}" class="{{ request()->routeIs('reports.orders-report') ? 'active' : '' }}">
                             <span class="nav-ico">📊</span>
                             <span class="nav-dot"></span>
                             Laporan Pemesanan
@@ -1018,6 +1186,7 @@
                     @endif
 
                     @if (auth()->user()->hasRole('admin'))
+                        <div class="sidebar-heading">Master Data</div>
                         <a href="{{ route('admin.users.index') }}" class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
                             <span class="nav-ico">👥</span>
                             <span class="nav-dot"></span>
@@ -1040,7 +1209,7 @@
 
                     @if (auth()->user()->hasRole('production', 'manager', 'owner'))
                         <a href="{{ route('reports.production') }}" class="{{ request()->routeIs('reports.production') ? 'active' : '' }}">
-                            <span class="nav-ico">🧵</span>
+                            <span class="nav-ico">📄</span>
                             <span class="nav-dot"></span>
                             Laporan Produksi
                         </a>
@@ -1105,6 +1274,7 @@
                 <div class="topbar-help" aria-label="Bantuan Landing">
                     <button type="button" class="topbar-help-toggle" aria-haspopup="true" aria-expanded="false">Bantuan</button>
                     <div class="topbar-help-menu">
+                        <a href="#pilihan-model">Pilihan Model</a>
                         <a href="#how-to-order">Cara Pemesanan</a>
                         <a href="#faq">FAQ</a>
                         <a href="#help-center">Pusat Bantuan</a>
@@ -1113,6 +1283,7 @@
             @endif
 
             <div class="menu topbar-auth">
+                <a class="menu-login" href="{{ route('track.index') }}" style="border-color: #0f9bab; color: #0f9bab; margin-right: 0.5rem;">Lacak Pesanan</a>
                 <a class="menu-login" href="{{ route('login') }}">Login</a>
                 <a class="menu-register" href="{{ route('register') }}">Register</a>
             </div>
@@ -1175,5 +1346,13 @@
 })();
 </script>
 @endauth
+
+<a href="https://wa.me/628123456789" target="_blank" rel="noopener noreferrer" class="floating-whatsapp" aria-label="Chat WhatsApp">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+        <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
+    </svg>
+    <span style="line-height:1; margin-top:1px;">WhatsApp</span>
+</a>
+
 </body>
 </html>

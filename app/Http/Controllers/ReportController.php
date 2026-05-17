@@ -52,11 +52,15 @@ class ReportController extends Controller
 
     public function orders(Request $request): View
     {
-        $period = $this->resolveMonthPeriod($request);
-
         $ordersQuery = Order::query()
             ->with(['user', 'sizes', 'payments'])
-            ->whereBetween('created_at', [$period['start'], $period['end']])
+            ->when($request->search, function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('order_code', 'like', "%{$request->search}%")
+                      ->orWhere('product_name', 'like', "%{$request->search}%")
+                      ->orWhere('customer_name', 'like', "%{$request->search}%");
+                });
+            })
             ->latest();
 
         $orderCount = (clone $ordersQuery)->count();
@@ -67,14 +71,74 @@ class ReportController extends Controller
             ->where('admin_verification_status', 'revision_requested')
             ->count();
 
-        $orders = $ordersQuery->paginate(10)->withQueryString();
+        $pendingOrders = (clone $ordersQuery)
+            ->where(function($query) {
+                $query->whereNull('admin_verification_status')
+                      ->orWhere('admin_verification_status', '!=', 'verified');
+            })
+            ->paginate(10, ['*'], 'pending_page')->withQueryString();
 
-        return view('reports.orders-balance', array_merge($period, [
+        $verifiedOrders = (clone $ordersQuery)
+            ->where('admin_verification_status', 'verified')
+            ->paginate(10, ['*'], 'verified_page')->withQueryString();
+
+        return view('reports.orders-balance', [
+            'pendingOrders' => $pendingOrders,
+            'verifiedOrders' => $verifiedOrders,
+            'orderCount' => $orderCount,
+            'verifiedCount' => $verifiedCount,
+            'revisionRequestedCount' => $revisionRequestedCount,
+        ]);
+    }
+
+    public function ordersReport(Request $request): View
+    {
+        $period = $this->resolveMonthPeriod($request);
+
+        $ordersQuery = Order::query()
+            ->with(['user', 'sizes', 'payments'])
+            ->whereBetween('created_at', [$period['start'], $period['end']])
+            ->when($request->search, function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('order_code', 'like', "%{$request->search}%")
+                      ->orWhere('product_name', 'like', "%{$request->search}%")
+                      ->orWhere('customer_name', 'like', "%{$request->search}%");
+                });
+            })
+            ->latest();
+
+        $orderCount = (clone $ordersQuery)->count();
+        $verifiedCount = (clone $ordersQuery)
+            ->where('admin_verification_status', 'verified')
+            ->count();
+        $revisionRequestedCount = (clone $ordersQuery)
+            ->where('admin_verification_status', 'revision_requested')
+            ->count();
+
+        $orders = $ordersQuery->get();
+
+        return view('reports.orders-report', array_merge($period, [
             'orders' => $orders,
             'orderCount' => $orderCount,
             'verifiedCount' => $verifiedCount,
             'revisionRequestedCount' => $revisionRequestedCount,
         ]));
+    }
+
+    public function exportOrders(Request $request)
+    {
+        $period = $this->resolveMonthPeriod($request);
+
+        $ordersQuery = Order::query()
+            ->with(['user', 'sizes', 'payments'])
+            ->whereBetween('created_at', [$period['start'], $period['end']])
+            ->latest();
+
+        $orders = $ordersQuery->get();
+
+        return response(view('reports.exports.orders', array_merge($period, ['orders' => $orders])))
+            ->header('Content-Type', 'application/vnd.ms-excel')
+            ->header('Content-Disposition', 'attachment; filename="Laporan_Pemesanan_' . $period['monthInput'] . '.xls"');
     }
 
     public function showOrder(Request $request, Order $order): View
@@ -160,12 +224,32 @@ class ReportController extends Controller
         return view('reports.finance-ledger', array_merge($period, $financeData));
     }
 
+    public function exportFinance(Request $request)
+    {
+        $period = $this->resolveMonthPeriod($request);
+        $financeData = $this->buildFinanceLedgerData($period['start'], $period['end']);
+
+        return response(view('reports.exports.finance', array_merge($period, $financeData)))
+            ->header('Content-Type', 'application/vnd.ms-excel')
+            ->header('Content-Disposition', 'attachment; filename="Laporan_Keuangan_' . $period['monthInput'] . '.xls"');
+    }
+
     public function production(Request $request): View
     {
         $period = $this->resolveMonthPeriod($request);
         $productionData = $this->buildProductionData($period['start'], $period['end']);
 
         return view('reports.production-monthly', array_merge($period, $productionData));
+    }
+
+    public function exportProduction(Request $request)
+    {
+        $period = $this->resolveMonthPeriod($request);
+        $productionData = $this->buildProductionData($period['start'], $period['end']);
+
+        return response(view('reports.exports.production', array_merge($period, $productionData)))
+            ->header('Content-Type', 'application/vnd.ms-excel')
+            ->header('Content-Disposition', 'attachment; filename="Laporan_Produksi_' . $period['monthInput'] . '.xls"');
     }
 
     public function executive(Request $request): View
@@ -425,6 +509,8 @@ class ReportController extends Controller
                 'total_pcs' => (int) $order->total_pcs,
                 'order_status' => $order->order_status,
                 'step_progress' => $stepCount > 0 ? ($doneSteps . '/' . $stepCount) : '-',
+                'created_at' => $order->created_at,
+                'estimated_finish_date' => $order->estimated_finish_date,
                 'updated_at' => $order->updated_at,
             ];
         });
