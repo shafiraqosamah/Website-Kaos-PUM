@@ -1197,6 +1197,13 @@
                             <span class="nav-dot"></span>
                             Kelola Bahan
                         </a>
+                        
+                        <div class="sidebar-heading">Sistem</div>
+                        <a href="{{ route('admin.settings.index') }}" class="{{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
+                            <span class="nav-ico">⚙️</span>
+                            <span class="nav-dot"></span>
+                            Pengaturan Sistem
+                        </a>
                     @endif
 
                     @if (auth()->user()->hasRole('finance', 'manager', 'owner') && ! ($isFinance ?? (strtolower((string) auth()->user()->role) === 'finance')))

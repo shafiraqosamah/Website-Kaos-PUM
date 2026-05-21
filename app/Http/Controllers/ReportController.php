@@ -76,15 +76,22 @@ class ReportController extends Controller
                 $query->whereNull('admin_verification_status')
                       ->orWhere('admin_verification_status', '!=', 'verified');
             })
+            ->where('order_status', '!=', 'rejected')
             ->paginate(10, ['*'], 'pending_page')->withQueryString();
 
         $verifiedOrders = (clone $ordersQuery)
             ->where('admin_verification_status', 'verified')
+            ->where('order_status', '!=', 'rejected')
             ->paginate(10, ['*'], 'verified_page')->withQueryString();
+
+        $cancelledOrders = (clone $ordersQuery)
+            ->where('order_status', 'rejected')
+            ->paginate(10, ['*'], 'cancelled_page')->withQueryString();
 
         return view('reports.orders-balance', [
             'pendingOrders' => $pendingOrders,
             'verifiedOrders' => $verifiedOrders,
+            'cancelledOrders' => $cancelledOrders,
             'orderCount' => $orderCount,
             'verifiedCount' => $verifiedCount,
             'revisionRequestedCount' => $revisionRequestedCount,

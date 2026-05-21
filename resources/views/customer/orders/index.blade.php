@@ -771,12 +771,13 @@
             <a class="btn btn-brand" href="{{ route('customer.orders.create') }}">Pesan Custom Baru</a>
         </div>
 
-        @if ($activeOrdersCollection->isEmpty() && $completedOrdersCollection->isEmpty())
+        @if ($activeOrdersCollection->isEmpty() && $completedOrdersCollection->isEmpty() && $cancelledOrders->isEmpty())
             <p class="orders-empty">Belum ada pesanan.</p>
         @else
-            <h3 style="margin:0 0 0.7rem; color:#0d2749; font-family:'Playfair Display', serif;">Pesanan Berjalan</h3>
-            <div class="orders-table-wrap">
-                <table class="orders-table">
+            @if ($activeOrdersCollection->isNotEmpty())
+                <h3 style="margin:0 0 0.7rem; color:#0d2749; font-family:'Playfair Display', serif;">Pesanan Berjalan</h3>
+                <div class="orders-table-wrap">
+                    <table class="orders-table">
                     <thead>
                         <tr>
                             <th>No</th>
@@ -968,6 +969,7 @@
                     </tbody>
                 </table>
             </div>
+            @endif
 
             @if ($completedOrdersCollection->isNotEmpty())
                 <h3 style="margin:1.1rem 0 0.7rem; color:#0d2749; font-family:'Playfair Display', serif;">Pesanan Selesai</h3>
@@ -1024,9 +1026,54 @@
                 </div>
             @endif
 
+            @if ($cancelledOrders->isNotEmpty())
+                <h3 style="margin:1.1rem 0 0.7rem; color:#9a1d1d; font-family:'Playfair Display', serif;">Pesanan Dibatalkan / Ditolak</h3>
+                <div class="orders-table-wrap">
+                    <table class="orders-table" style="min-width:980px;">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Nomor Order</th>
+                                <th>Tanggal Pemesanan</th>
+                                <th>Jenis Produk</th>
+                                <th>Total PCS</th>
+                                <th>Total Harga</th>
+                                <th class="status-head">Status</th>
+                                <th>Catatan Pembatalan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($cancelledOrders as $order)
+                                <tr>
+                                    <td>{{ $loop->iteration }}</td>
+                                    <td class="order-code"><a href="{{ route('customer.orders.show', $order) }}">{{ $order->order_code }}</a></td>
+                                    <td>{{ $order->created_at?->format('d/m/Y H:i') }}</td>
+                                    <td>{{ $order->product_name ?: ($order->product_model ?: '-') }}</td>
+                                    <td>{{ number_format((int) $order->total_pcs, 0, ',', '.') }}</td>
+                                    <td>Rp {{ number_format((float) $order->subtotal, 0, ',', '.') }}</td>
+                                    <td class="status-center"><span class="status-pill status-danger">Ditolak / Batal</span></td>
+                                    <td style="color:#9a1d1d; font-size:0.85rem; max-width:300px; white-space:normal;">
+                                        {{ $order->admin_verification_note ?: 'Dibatalkan oleh sistem.' }}
+                                    </td>
+                                    <td><a class="action-btn action-btn-outline" href="{{ route('customer.orders.show', $order) }}">Detail</a></td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                @if ($cancelledOrders->hasPages())
+                    <div style="margin-top: 0.85rem;">
+                        {{ $cancelledOrders->appends(['active_page' => request('active_page')])->links() }}
+                    </div>
+                @endif
+            @endif
+
+
             @if ($orders->hasPages())
                 <div style="margin-top: 0.85rem;">
-                    {{ $orders->links() }}
+                    {{ $orders->appends(['cancelled_page' => request('cancelled_page')])->links() }}
                 </div>
             @endif
         @endif

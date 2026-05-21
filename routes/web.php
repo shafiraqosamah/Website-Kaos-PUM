@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminMaterialController;
+use App\Http\Controllers\AdminSettingController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\CustomerOrderController;
 use App\Http\Controllers\DashboardController;
@@ -74,6 +75,10 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware('role:' . User::ROLE_ADMIN)->group(function (): void {
         Route::post('/production/orders/{order}/verify-final', [ProductionController::class, 'verifyFinalResult'])->name('production.verify-final');
         Route::post('/production/orders/{order}/pickup-status', [ProductionController::class, 'updatePickupStatus'])->name('production.pickup-status');
+        
+        Route::get('/admin/settings', [AdminSettingController::class, 'index'])->name('admin.settings.index');
+        Route::post('/admin/settings', [AdminSettingController::class, 'update'])->name('admin.settings.update');
+        Route::post('/admin/settings/run-check', [AdminSettingController::class, 'runCheck'])->name('admin.settings.run-check');
     });
 
     Route::middleware('role:' . User::ROLE_ADMIN . ',' . User::ROLE_FINANCE . ',' . User::ROLE_PRODUCTION . ',' . User::ROLE_MANAGER . ',' . User::ROLE_OWNER)->group(function (): void {

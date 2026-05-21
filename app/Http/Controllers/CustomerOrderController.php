@@ -55,8 +55,9 @@ class CustomerOrderController extends Controller
     {
         $this->syncMidtransPaymentsForCustomer((int) $request->user()->id);
 
-        $orders = Order::with(['sizes', 'payments', 'productionSteps'])
+        $activeOrdersQuery = Order::with(['sizes', 'payments', 'productionSteps'])
             ->where('user_id', $request->user()->id)
+            ->where('order_status', '!=', 'rejected')
             ->when($request->search, function ($query) use ($request) {
                 $query->where(function ($q) use ($request) {
                     $q->where('order_code', 'like', "%{$request->search}%")
@@ -64,9 +65,24 @@ class CustomerOrderController extends Controller
                 });
             })
             ->latest()
-            ->paginate(10);
+            ->paginate(10, ['*'], 'active_page');
 
-        return view('customer.orders.index', compact('orders'));
+        $cancelledOrders = Order::with(['sizes', 'payments'])
+            ->where('user_id', $request->user()->id)
+            ->where('order_status', 'rejected')
+            ->when($request->search, function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('order_code', 'like', "%{$request->search}%")
+                      ->orWhere('product_name', 'like', "%{$request->search}%");
+                });
+            })
+            ->latest()
+            ->paginate(10, ['*'], 'cancelled_page');
+
+        return view('customer.orders.index', [
+            'orders' => $activeOrdersQuery,
+            'cancelledOrders' => $cancelledOrders,
+        ]);
     }
 
     public function create(Request $request): View

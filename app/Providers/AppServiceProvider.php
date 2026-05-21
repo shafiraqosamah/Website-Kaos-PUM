@@ -27,7 +27,9 @@ class AppServiceProvider extends ServiceProvider
                 $isCustomer = auth()->user()->hasRole('customer');
 
                 if ($role === 'admin' || $role === 'manager' || $role === 'owner') {
-                    $pendingVerification = \App\Models\Order::where('admin_verification_status', 'pending')->count();
+                    $pendingVerification = \App\Models\Order::where('admin_verification_status', 'pending')
+                        ->where('order_status', '!=', 'rejected')
+                        ->count();
                     if ($pendingVerification > 0) {
                         $notifications[] = [
                             'text' => "Ada {$pendingVerification} pesanan yang menunggu verifikasi (Max 2x24 Jam).",
@@ -42,6 +44,17 @@ class AppServiceProvider extends ServiceProvider
                             'text' => "Ada {$productionDone} pesanan selesai produksi menunggu verifikasi akhir.",
                             'url' => route('dashboard'),
                             'icon' => '✅'
+                        ];
+                    }
+
+                    $adminCancelledOrders = \App\Models\Order::where('order_status', 'rejected')
+                        ->where('updated_at', '>=', now()->subDays(3))
+                        ->count();
+                    if ($adminCancelledOrders > 0) {
+                        $notifications[] = [
+                            'text' => "Ada {$adminCancelledOrders} pesanan yang ditolak/dibatalkan sistem baru-baru ini.",
+                            'url' => route('reports.orders') . '?cancelled_page=1',
+                            'icon' => '❌'
                         ];
                     }
                 }
@@ -91,6 +104,18 @@ class AppServiceProvider extends ServiceProvider
                             'text' => "Ada pesanan Anda yang siap diambil / selesai.",
                             'url' => route('customer.orders.index'),
                             'icon' => '🎁'
+                        ];
+                    }
+
+                    $customerCancelledOrders = \App\Models\Order::where('user_id', auth()->id())
+                        ->where('order_status', 'rejected')
+                        ->where('updated_at', '>=', now()->subDays(3))
+                        ->count();
+                    if ($customerCancelledOrders > 0) {
+                        $notifications[] = [
+                            'text' => "Ada {$customerCancelledOrders} pesanan Anda yang dibatalkan/ditolak.",
+                            'url' => route('customer.orders.index') . '?cancelled_page=1',
+                            'icon' => '❌'
                         ];
                     }
                 }

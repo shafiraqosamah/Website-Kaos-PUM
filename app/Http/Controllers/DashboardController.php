@@ -160,7 +160,9 @@ class DashboardController extends Controller
             return view('dashboard.production', compact('activeOrders', 'waitingSettlement', 'activeOrdersWithSteps', 'finishingWaitingSettlement', 'newProductionOrders', 'readyForFinishingOrders'));
         }
 
-        $pendingOrderVerification = Order::where('admin_verification_status', 'pending')->count();
+        $pendingOrderVerification = Order::where('admin_verification_status', 'pending')
+            ->where('order_status', '!=', 'rejected')
+            ->count();
         $productionWaitingVerification = Order::where('order_status', 'production_done_waiting_admin')->count();
 
         $summary = [
@@ -172,6 +174,7 @@ class DashboardController extends Controller
 
         $pendingVerificationOrders = Order::with('user')
             ->where('admin_verification_status', 'pending')
+            ->where('order_status', '!=', 'rejected')
             ->latest()
             ->take(10)
             ->get();

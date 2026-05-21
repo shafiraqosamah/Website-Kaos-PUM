@@ -502,6 +502,70 @@
             {{ $verifiedOrders->links() }}
         </div>
     @endif
+
+    @if ($cancelledOrders->isNotEmpty())
+        <h3 style="margin-top: 2rem; color: #9a1d1d; font-family: 'Playfair Display', serif;">Pesanan Dibatalkan / Ditolak</h3>
+        <div class="orders-table-card">
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>No. Order</th>
+                        <th>Pemesan</th>
+                        <th>Tanggal Pesan</th>
+                        <th>Jumlah PCS</th>
+                        <th>Total Harga</th>
+                        <th>Produk</th>
+                        <th class="status-col">Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($cancelledOrders as $order)
+                        <tr>
+                            <td>{{ ($cancelledOrders->firstItem() ?? 1) + $loop->index }}</td>
+                            <td>
+                                <strong>{{ $order->order_code }}</strong>
+                            </td>
+                            <td>
+                                <div><strong>{{ $order->customer_name ?: ($order->user->name ?? '-') }}</strong></div>
+                                <div>{{ $order->user->email ?? '-' }}</div>
+                            </td>
+                            <td>{{ $order->created_at?->format('d/m/Y H:i') }}</td>
+                            <td>{{ number_format((int) $order->total_pcs, 0, ',', '.') }} pcs</td>
+                            <td>Rp {{ number_format((float) $order->subtotal, 0, ',', '.') }}</td>
+                            <td>{{ $order->product_name ?: ($order->product_model ?: '-') }}</td>
+                            <td class="status-col">
+                                <span class="status-pill status-danger">Ditolak / Batal</span>
+                                @if ($order->admin_verification_note)
+                                    <div class="muted-mini note-preview">Catatan: {{ $order->admin_verification_note }}</div>
+                                    <button
+                                        type="button"
+                                        class="note-open-btn"
+                                        data-note-order="{{ $order->order_code }}"
+                                        data-note-text="{{ $order->admin_verification_note }}"
+                                    >
+                                        Lihat Catatan
+                                    </button>
+                                @endif
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a class="btn btn-xs action-detail" href="{{ route('reports.orders.show', ['order' => $order, 'month' => request('month')]) }}">Detail</a>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        @if ($cancelledOrders->hasPages())
+            <div style="margin-top:0.8rem;">
+                {{ $cancelledOrders->links() }}
+            </div>
+        @endif
+    @endif
 </section>
 
 <div id="noteModalBackdrop" class="note-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="noteModalTitle">
