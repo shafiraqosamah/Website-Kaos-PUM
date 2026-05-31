@@ -578,7 +578,7 @@
                                 <button
                                     type="button"
                                     class="btn-detail js-open-detail"
-                                    data-verify-url="{{ $isMidtransOnly ? '' : route('finance.verify', $payment) }}"
+                                    data-verify-url=""
                                     data-invoice-url="{{ $payment->invoice_number ? route('finance.invoices.show', $payment) : '' }}"
                                     data-order-code="{{ $payment->order->order_code }}"
                                     data-customer="{{ $payment->order->user->name }}"

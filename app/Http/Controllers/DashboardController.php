@@ -110,10 +110,7 @@ class DashboardController extends Controller
 
         if ($user->hasRole(User::ROLE_FINANCE)) {
             $pendingPayments = Payment::where('status', 'pending')
-                ->whereNotNull('proof_path')
-                ->whereNotNull('destination_bank')
-                ->whereNotNull('sender_bank_name')
-                ->whereNotNull('sender_account_name')
+                ->whereNotNull('midtrans_order_id')
                 ->count();
             $verifiedToday = Payment::where('status', 'verified')->whereDate('updated_at', now()->toDateString())->count();
             $monthlyVerifiedAmount = Payment::where('status', 'verified')
@@ -181,7 +178,7 @@ class DashboardController extends Controller
 
         $pendingPayments = Payment::with(['order', 'order.user'])
             ->where('status', 'pending')
-            ->whereNotNull('proof_path')
+            ->whereNotNull('midtrans_order_id')
             ->latest()
             ->take(10)
             ->get();

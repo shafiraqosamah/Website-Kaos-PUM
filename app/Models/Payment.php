@@ -7,38 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Payment extends Model
 {
-    public const DESTINATION_BANKS = [
-        'bca' => [
-            'label' => 'BCA',
-            'account_number' => '123-456-7891',
-            'account_name' => 'Keuangan',
-        ],
-        'bni' => [
-            'label' => 'BNI',
-            'account_number' => '123-456-7892',
-            'account_name' => 'Keuangan',
-        ],
-        'bri' => [
-            'label' => 'BRI',
-            'account_number' => '123-456-7892',
-            'account_name' => 'Keuangan',
-        ],
-        'mandiri' => [
-            'label' => 'Mandiri',
-            'account_number' => '123-456-7893',
-            'account_name' => 'Keuangan',
-        ],
-    ];
-
     protected $fillable = [
         'order_id',
         'method',
         'invoice_number',
         'invoiced_at',
-        'destination_bank',
-        'sender_bank_name',
-        'sender_account_name',
-        'proof_path',
         'amount',
         'status',
         'verified_by',
@@ -60,16 +33,6 @@ class Payment extends Model
             'verified_at' => 'datetime',
             'midtrans_response' => 'array',
         ];
-    }
-
-    public static function destinationBanks(): array
-    {
-        return self::DESTINATION_BANKS;
-    }
-
-    public function destinationBankDetails(): ?array
-    {
-        return self::DESTINATION_BANKS[$this->destination_bank] ?? null;
     }
 
     public function order(): BelongsTo

@@ -51,17 +51,13 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/customer/orders', [CustomerOrderController::class, 'store'])->name('customer.orders.store');
         Route::get('/customer/orders/{order}', [CustomerOrderController::class, 'show'])->name('customer.orders.show');
         Route::post('/customer/orders/{order}/revision/approve', [CustomerOrderController::class, 'approveRevision'])->name('customer.orders.revision.approve');
-        Route::get('/customer/orders/{order}/payments/{payment}/proof', [CustomerOrderController::class, 'viewPaymentProof'])->name('customer.orders.payments.proof');
         Route::get('/customer/orders/{order}/payments/{payment}', [CustomerOrderController::class, 'editPayment'])->name('customer.orders.payments.edit');
-        Route::post('/customer/orders/{order}/payments/{payment}', [CustomerOrderController::class, 'updatePayment'])->name('customer.orders.payments.update');
         Route::get('/customer/orders/{order}/payments/{payment}/invoice', [InvoiceController::class, 'showForCustomer'])->name('customer.invoices.show');
         Route::post('/customer/orders/{order}/settlement', [CustomerOrderController::class, 'requestSettlement'])->name('customer.orders.settlement');
     });
 
     Route::middleware('role:' . User::ROLE_FINANCE . ',' . User::ROLE_ADMIN)->group(function (): void {
         Route::get('/finance/payments', [FinanceController::class, 'index'])->name('finance.index');
-        Route::get('/finance/payments/{payment}/proof', [FinanceController::class, 'viewProof'])->name('finance.payments.proof');
-        Route::post('/finance/payments/{payment}/verify', [FinanceController::class, 'verify'])->name('finance.verify');
         Route::get('/finance/payments/{payment}/invoice', [InvoiceController::class, 'showForFinance'])->name('finance.invoices.show');
     });
 

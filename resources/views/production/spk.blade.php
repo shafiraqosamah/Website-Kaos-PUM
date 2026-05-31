@@ -306,6 +306,18 @@
                 page-break-inside: avoid;
             }
         }
+        @media (max-width: 900px) {
+            .top {
+                align-items: flex-start;
+            }
+            .brand-title {
+                font-size: 36px;
+            }
+            .brand-contact {
+                font-size: 15px;
+                letter-spacing: 0.1em;
+            }
+        }
     </style>
 </head>
 <body>

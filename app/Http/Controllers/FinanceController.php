@@ -25,19 +25,7 @@ class FinanceController extends Controller
 
         $pendingPayments = Payment::with('order.user')
             ->where('status', 'pending')
-            ->where(function ($query): void {
-                $query
-                    // Manual transfer entries.
-                    ->where(function ($manual): void {
-                        $manual
-                            ->whereNotNull('proof_path')
-                            ->whereNotNull('destination_bank')
-                            ->whereNotNull('sender_bank_name')
-                            ->whereNotNull('sender_account_name');
-                    })
-                    // Midtrans entries: no manual proof fields required.
-                    ->orWhereNotNull('midtrans_order_id');
-            })
+            ->whereNotNull('midtrans_order_id')
             ->when($request->search, function ($query) use ($request) {
                 $query->whereHas('order', function ($q) use ($request) {
                     $q->where('order_code', 'like', "%{$request->search}%")
@@ -49,6 +37,7 @@ class FinanceController extends Controller
 
         $verifiedPayments = Payment::with('order.user')
             ->where('status', 'verified')
+            ->whereNotNull('midtrans_order_id')
             ->when($request->search, function ($query) use ($request) {
                 $query->whereHas('order', function ($q) use ($request) {
                     $q->where('order_code', 'like', "%{$request->search}%")
@@ -61,6 +50,7 @@ class FinanceController extends Controller
 
         $rejectedPayments = Payment::with('order.user')
             ->where('status', 'rejected')
+            ->whereNotNull('midtrans_order_id')
             ->when($request->search, function ($query) use ($request) {
                 $query->whereHas('order', function ($q) use ($request) {
                     $q->where('order_code', 'like', "%{$request->search}%")
@@ -167,121 +157,6 @@ class FinanceController extends Controller
                 ]);
             }
         }
-    }
-
-    public function verify(Request $request, Payment $payment): RedirectResponse
-    {
-        $validated = $request->validate([
-            'action' => ['required', 'in:verify,reject'],
-            'reject_reason' => ['nullable', 'required_if:action,reject', 'in:' . implode(',', array_keys($this->rejectReasonCatalog()))],
-            'notes' => ['nullable', 'string', 'max:1000'],
-        ]);
-
-        if ($payment->status !== 'pending') {
-            return back()->withErrors(['payment' => 'Pembayaran sudah diproses sebelumnya.']);
-        }
-
-        if (! $payment->proof_path || ! $payment->destination_bank || ! $payment->sender_bank_name || ! $payment->sender_account_name) {
-            return back()->withErrors(['payment' => 'Data pembayaran belum lengkap dan belum bisa diverifikasi.']);
-        }
-
-        DB::transaction(function () use ($request, $payment, $validated): void {
-            $order = $payment->order()->lockForUpdate()->firstOrFail();
-
-            $baseNotes = $this->withoutFinanceNotes($payment->notes);
-            $financeNote = $validated['notes'] ?? null;
-
-            if ($validated['action'] === 'reject') {
-                $reasonCode = (string) ($validated['reject_reason'] ?? 'other');
-                $reasonData = $this->rejectReasonCatalog()[$reasonCode] ?? $this->rejectReasonCatalog()['other'];
-                $reasonLabel = $reasonData['label'];
-                $customerAction = $reasonData['customer_action'];
-
-                $noteLines = [];
-                if ($baseNotes) {
-                    $noteLines[] = $baseNotes;
-                }
-                $noteLines[] = 'Alasan penolakan kode: ' . $reasonCode;
-                $noteLines[] = 'Alasan penolakan: ' . $reasonLabel;
-                $noteLines[] = 'Tindakan customer: ' . $customerAction;
-                if ($financeNote) {
-                    $noteLines[] = 'Catatan keuangan: ' . $financeNote;
-                }
-
-                $mergedNotes = trim(implode(PHP_EOL, $noteLines));
-
-                $payment->update([
-                    'status' => 'rejected',
-                    'verified_by' => $request->user()->id,
-                    'verified_at' => now(),
-                    'notes' => $mergedNotes,
-                ]);
-                
-                if ($order->user && $order->user->email) {
-                    Mail::to($order->user->email)->send(new PaymentRejectedMail($order, $payment));
-                }
-
-                return;
-            }
-
-            $verifiedNotes = $financeNote
-                ? trim(($baseNotes ? $baseNotes . PHP_EOL : '') . 'Catatan keuangan: ' . $financeNote)
-                : ($baseNotes ?: 'Diverifikasi bagian keuangan.');
-
-            $payment->update([
-                'status' => 'verified',
-                'invoice_number' => $payment->invoice_number ?: $this->generateInvoiceNumber($payment),
-                'invoiced_at' => $payment->invoiced_at ?: now(),
-                'verified_by' => $request->user()->id,
-                'verified_at' => now(),
-                'notes' => $verifiedNotes,
-            ]);
-
-            if ($payment->method === 'settlement') {
-                $order->update([
-                    'remaining_amount' => 0,
-                    'payment_status' => 'fully_paid',
-                    'order_status' => 'in_production',
-                ]);
-                
-                if ($order->user && $order->user->email) {
-                    Mail::to($order->user->email)->send(new OrderFullyPaidMail($order, $payment));
-                }
-
-                return;
-            }
-
-            if ($payment->method === 'full') {
-                $order->update([
-                    'payment_status' => 'fully_paid',
-                    'remaining_amount' => 0,
-                    'order_status' => 'verified_payment',
-                ]);
-                
-                if ($order->user && $order->user->email) {
-                    Mail::to($order->user->email)->send(new OrderFullyPaidMail($order, $payment));
-                }
-            } else {
-                $order->update([
-                    'payment_status' => 'verified_dp',
-                    'order_status' => 'verified_payment',
-                ]);
-            }
-
-            $this->ensureWorkOrderAndSteps($order, $request->user()->id);
-        });
-
-        return back()->with('success', 'Status pembayaran berhasil diperbarui.');
-    }
-
-    public function viewProof(Payment $payment): StreamedResponse
-    {
-        abort_unless((bool) $payment->proof_path, 404, 'Bukti pembayaran tidak tersedia.');
-
-        $disk = Storage::disk('public');
-        abort_unless($disk->exists($payment->proof_path), 404, 'File bukti pembayaran tidak ditemukan.');
-
-        return $disk->response($payment->proof_path);
     }
 
     private function ensureWorkOrderAndSteps(Order $order, int $issuerId): void

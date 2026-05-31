@@ -181,7 +181,7 @@
             return true;
         }
 
-        return (bool) $payment->proof_path || (bool) $payment->midtrans_order_id;
+        return (bool) $payment->midtrans_order_id;
     });
 @endphp
 

@@ -390,7 +390,6 @@ class ReportController extends Controller
 
         $ledgerRows = $payments->map(function (Payment $payment): array {
             $order = $payment->order;
-            $bank = $payment->destinationBankDetails();
 
             return [
                 'date' => $payment->created_at,
@@ -403,10 +402,8 @@ class ReportController extends Controller
                 'order_subtotal' => (float) ($order?->subtotal ?? 0),
                 'method' => $this->paymentMethodLabel($payment->method),
                 'method_raw' => $payment->method,
-                'destination' => $bank
-                    ? ($bank['label'] . ' - ' . $bank['account_number'] . ' (' . $bank['account_name'] . ')')
-                    : ((string) ($payment->destination_bank ?? '-')),
-                'sender' => trim((string) ($payment->sender_bank_name ?? '-') . ' / ' . (string) ($payment->sender_account_name ?? '-')),
+                'destination' => $payment->midtrans_payment_type ? 'Midtrans (' . strtoupper($payment->midtrans_payment_type) . ')' : 'Midtrans',
+                'sender' => '-',
                 'amount' => (float) $payment->amount,
                 'status' => $payment->status,
                 'invoice' => $payment->invoice_number ?? '-',

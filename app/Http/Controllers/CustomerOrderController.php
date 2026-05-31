@@ -384,93 +384,7 @@ class CustomerOrderController extends Controller
         return view('customer.orders.payment', [
             'order' => $order,
             'payment' => $payment,
-            'banks' => Payment::destinationBanks(),
         ]);
-    }
-
-    public function viewPaymentProof(Request $request, Order $order, Payment $payment): StreamedResponse
-    {
-        abort_unless($order->user_id === $request->user()->id, 403);
-        abort_unless($payment->order_id === $order->id, 404);
-        abort_unless((bool) $payment->proof_path, 404, 'Bukti pembayaran tidak tersedia.');
-
-        $disk = Storage::disk('public');
-        abort_unless($disk->exists($payment->proof_path), 404, 'File bukti pembayaran tidak ditemukan.');
-
-        return $disk->response($payment->proof_path);
-    }
-
-    public function updatePayment(Request $request, Order $order, Payment $payment): RedirectResponse
-    {
-        abort_unless($order->user_id === $request->user()->id, 403);
-        abort_unless($payment->order_id === $order->id, 404);
-
-        if ($payment->method !== 'settlement' && $order->admin_verification_status !== 'verified') {
-            return redirect()
-                ->route('customer.orders.index')
-                ->withErrors(['payment' => 'Pesanan Anda masih menunggu verifikasi admin sebelum mengirim pembayaran.']);
-        }
-
-        if ($payment->status === 'verified') {
-            return back()->withErrors(['payment' => 'Pembayaran yang sudah diverifikasi tidak dapat diubah.']);
-        }
-
-        $rules = [
-            'destination_bank' => ['required', 'in:' . implode(',', array_keys(Payment::destinationBanks()))],
-            'sender_bank_name' => ['required', 'string', 'max:120'],
-            'sender_account_name' => ['required', 'string', 'max:120'],
-            'payment_proof' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-        ];
-
-        if ($payment->method !== 'settlement') {
-            $rules['payment_option'] = ['required', 'in:dp,full'];
-        }
-
-        $validated = $request->validate($rules);
-
-        $proofPath = $payment->proof_path;
-
-        if ($request->hasFile('payment_proof')) {
-            $proofPath = $request->file('payment_proof')->store('payment-proofs', 'public');
-        }
-
-        $selectedMethod = $payment->method === 'settlement'
-            ? 'settlement'
-            : (string) ($validated['payment_option'] ?? $payment->method);
-
-        $selectedAmount = match ($selectedMethod) {
-            'full' => (float) $order->subtotal,
-            'settlement' => (float) $order->remaining_amount,
-            default => (float) $order->subtotal * 0.5,
-        };
-
-        $payment->update([
-            'method' => $selectedMethod,
-            'destination_bank' => $validated['destination_bank'],
-            'sender_bank_name' => $validated['sender_bank_name'],
-            'sender_account_name' => $validated['sender_account_name'],
-            'proof_path' => $proofPath,
-            'amount' => $selectedAmount,
-            'status' => 'pending',
-            'notes' => $validated['notes'] ?? $payment->notes,
-        ]);
-
-        if ($selectedMethod !== 'settlement') {
-            $order->update([
-                'payment_type' => $selectedMethod,
-                'dp_amount' => $selectedMethod === 'full' ? (float) $order->subtotal : (float) $order->subtotal * 0.5,
-                'remaining_amount' => $selectedMethod === 'full' ? 0 : (float) $order->subtotal * 0.5,
-                'payment_status' => 'pending_verification',
-                'order_status' => 'submitted',
-            ]);
-        } else {
-            $order->update([
-                'payment_status' => 'pending_verification',
-            ]);
-        }
-
-        return redirect()->route('customer.orders.show', $order)->with('success', 'Data pembayaran berhasil dikirim dan menunggu verifikasi keuangan.');
     }
 
     public function requestSettlement(Request $request, Order $order): RedirectResponse
@@ -488,18 +402,9 @@ class CustomerOrderController extends Controller
             ->first();
 
         if ($pendingSettlement) {
-            $isSettlementDataComplete = (bool) $pendingSettlement->proof_path
-                && (bool) $pendingSettlement->destination_bank
-                && (bool) $pendingSettlement->sender_bank_name
-                && (bool) $pendingSettlement->sender_account_name;
-
-            if (! $isSettlementDataComplete) {
-                return redirect()
-                    ->route('customer.orders.payments.edit', [$order, $pendingSettlement])
-                    ->with('warning', 'Lengkapi data pelunasan dan upload bukti transfer agar bisa diverifikasi keuangan.');
-            }
-
-            return back()->withErrors(['payment' => 'Data pelunasan sudah dikirim dan sedang menunggu verifikasi keuangan.']);
+            return redirect()
+                ->route('customer.orders.payments.edit', [$order, $pendingSettlement])
+                ->with('success', 'Silakan selesaikan pembayaran pelunasan Anda.');
         }
 
         $payment = $order->payments()->create([
@@ -511,7 +416,7 @@ class CustomerOrderController extends Controller
 
         return redirect()
             ->route('customer.orders.payments.edit', [$order, $payment])
-            ->with('success', 'Silakan isi data pelunasan dan upload bukti transfer Anda.');
+            ->with('success', 'Silakan selesaikan pembayaran pelunasan Anda.');
     }
 
     private function syncMidtransPaymentsForCustomer(int $userId): void
