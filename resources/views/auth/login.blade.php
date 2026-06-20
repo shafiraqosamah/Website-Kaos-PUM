@@ -89,8 +89,8 @@
 
 <section class="auth-screen" aria-label="Halaman Login">
     <div class="auth-card">
-        <h1 class="auth-title">Selamat Datang</h1>
-        <p class="auth-subtitle">Masuk ke akun Anda untuk melanjutkan pemesanan custom.</p>
+        <h1 class="auth-title" style="text-align: center;">Selamat Datang</h1>
+        <p class="auth-subtitle" style="text-align: center;">Masuk ke akun Anda untuk melanjutkan pemesanan custom.</p>
 
         <form method="POST" action="{{ route('login.store') }}" class="auth-form">
             @csrf

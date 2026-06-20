@@ -288,7 +288,7 @@ class CustomerOrderController extends Controller
 
             $order = Order::create([
                 'user_id' => $request->user()->id,
-                'order_code' => 'ORD-' . now()->format('Ymd') . '-' . Str::upper(Str::random(5)),
+                'order_code' => 'TEMP-' . Str::random(10),
                 'customer_name' => $validated['customer_name'],
                 'product_name' => 'Kaos Custom - ' . $validated['product_model'],
                 'total_pcs' => (int) $validated['total_pcs'],
@@ -325,6 +325,10 @@ class CustomerOrderController extends Controller
                 'amount' => $dpAmount,
                 'status' => 'pending',
                 'notes' => $isDp ? 'Pembayaran DP awal 50%' : 'Pembayaran lunas saat pemesanan',
+            ]);
+
+            $order->update([
+                'order_code' => 'ORD-' . now()->format('m-Y') . '-' . str_pad((string) $order->id, 4, '0', STR_PAD_LEFT),
             ]);
 
             $createdOrder = $order;
@@ -508,7 +512,7 @@ class CustomerOrderController extends Controller
     {
         if (! $order->workOrder()->exists()) {
             $order->workOrder()->create([
-                'spk_number' => 'SPK-' . now()->format('Ymd') . '-' . str_pad((string) $order->id, 4, '0', STR_PAD_LEFT),
+                'spk_number' => 'SPK-' . now()->format('m-Y') . '-' . str_pad((string) $order->id, 4, '0', STR_PAD_LEFT),
                 'issued_by' => $issuerId,
                 'issued_at' => now(),
                 'status' => 'open',

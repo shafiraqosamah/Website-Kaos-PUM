@@ -1186,11 +1186,11 @@
                     @endif
 
                     @if (auth()->user()->hasRole('admin'))
-                        <div class="sidebar-heading">Master Data</div>
+                        <div class="sidebar-heading">Manajemen Data</div>
                         <a href="{{ route('admin.users.index') }}" class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
                             <span class="nav-ico">👥</span>
                             <span class="nav-dot"></span>
-                            Manajemen User
+                            Kelola User
                         </a>
                         <a href="{{ route('admin.materials.index') }}" class="{{ request()->routeIs('admin.materials.*') ? 'active' : '' }}">
                             <span class="nav-ico">🧶</span>

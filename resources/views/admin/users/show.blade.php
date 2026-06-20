@@ -129,7 +129,7 @@
     </div>
 
     <div class="detail-actions">
-        <a href="{{ route('admin.users.index') }}" class="back-btn">Kembali ke Manajemen User</a>
+        <a href="{{ route('admin.users.index') }}" class="back-btn">Kembali ke Kelola User</a>
     </div>
 </section>
 @endsection

@@ -163,10 +163,10 @@
     <div class="simulation-section">
         <div class="simulation-header">
             <span>⚠️</span>
-            <h2 class="simulation-title">Simulasi Pengecekan Jatuh Tempo</h2>
+            <h2 class="simulation-title">Simulasi Pengecekan Rentang Approval</h2>
         </div>
         <p class="simulation-desc">
-            Tombol ini akan mengeksekusi script otomatis (seolah-olah dipanggil oleh <i>Cron Job</i> server) untuk membatalkan pesanan-pesanan yang sudah melewati batas waktu <b>{{ $autoCancelMinutes }} menit</b> sejak dibuat (untuk verifikasi admin) atau sejak disetujui (untuk pembayaran). Email pembatalan juga akan dikirimkan.
+            Tombol ini akan mengeksekusi script otomatis (seolah-olah dipanggil oleh <i>Cron Job</i> server) untuk membatalkan pesanan-pesanan yang sudah melewati batas waktu <b>{{ $autoCancelMinutes }} menit</b> sejak dibuat (untuk verifikasi admin) atau sejak disetujui (untuk pembayaran).
         </p>
         
         <form action="{{ route('admin.settings.run-check') }}" method="POST">

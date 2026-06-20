@@ -76,8 +76,8 @@
 
 <section class="auth-screen" aria-label="Halaman Register">
     <div class="auth-card">
-        <h1 class="auth-title">Buat Akun Baru</h1>
-        <p class="auth-subtitle">Daftar untuk mulai memesan kaos custom dengan proses yang cepat.</p>
+        <h1 class="auth-title" style="text-align: center;">Buat Akun Baru</h1>
+        <p class="auth-subtitle" style="text-align: center;">Daftar untuk mulai memesan kaos custom dengan proses yang cepat.</p>
 
         <form method="POST" action="{{ route('register.store') }}" class="auth-form">
             @csrf

@@ -379,7 +379,7 @@ class MidtransController extends Controller
     {
         if (! $order->workOrder()->exists()) {
             $order->workOrder()->create([
-                'spk_number' => 'SPK-' . now()->format('Ymd') . '-' . str_pad((string) $order->id, 4, '0', STR_PAD_LEFT),
+                'spk_number' => 'SPK-' . now()->format('m-Y') . '-' . str_pad((string) $order->id, 4, '0', STR_PAD_LEFT),
                 'issued_by' => $order->user_id,
                 'issued_at' => now(),
                 'status' => 'open',

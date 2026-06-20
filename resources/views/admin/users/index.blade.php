@@ -294,7 +294,7 @@
 
 <section class="users-page">
     <div class="users-header">
-        <h1>Manajemen User</h1>
+        <h1>Kelola User</h1>
         <p>Semua akun yang terdaftar di sistem</p>
     </div>
 
@@ -361,7 +361,7 @@
     </div>
 
     <section class="new-user-card">
-        <h2>Tambah User Baru</h2>
+        <h2>Tambah Pengguna</h2>
         <p>Admin dapat menambahkan akun baru seperti Finance, Produksi, Manager, atau Customer.</p>
 
         <form method="POST" action="{{ route('admin.users.store') }}" class="new-user-form">
@@ -402,7 +402,7 @@
                 <input id="password_confirmation" type="password" name="password_confirmation" required>
             </div>
             <div class="form-col-full">
-                <button type="submit" class="create-btn">Tambah User</button>
+                <button type="submit" class="create-btn">Submit</button>
             </div>
         </form>
     </section>
