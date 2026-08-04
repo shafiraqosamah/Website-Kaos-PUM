@@ -23,43 +23,88 @@ class FinanceController extends Controller
     {
         $this->syncMidtransPayments();
 
-        $pendingPayments = Payment::with('order.user')
+        $monthInput = (string) $request->query('month', now()->format('Y-m'));
+        try {
+            $monthObj = Carbon::createFromFormat('Y-m', $monthInput)->startOfMonth();
+        } catch (\Throwable) {
+            $monthObj = now()->startOfMonth();
+            $monthInput = now()->format('Y-m');
+        }
+        $start = $monthObj->copy()->startOfMonth();
+        $end = $monthObj->copy()->endOfMonth();
+        $monthLabel = $monthObj->translatedFormat('F Y');
+
+        $pendingPayments = Payment::with(['order', 'order.user'])
             ->where('status', 'pending')
             ->whereNotNull('midtrans_order_id')
+            ->whereBetween('created_at', [$start, $end])
+            ->whereHas('order', function ($query) {
+                $query->where('order_status', '!=', 'rejected');
+            })
             ->when($request->search, function ($query) use ($request) {
-                $query->whereHas('order', function ($q) use ($request) {
-                    $q->where('order_code', 'like', "%{$request->search}%")
-                      ->orWhere('customer_name', 'like', "%{$request->search}%");
+                $query->where(function ($q) use ($request) {
+                    $q->where('invoice_number', 'like', "%{$request->search}%")
+                      ->orWhereHas('order', function ($oq) use ($request) {
+                          $oq->where('order_code', 'like', "%{$request->search}%")
+                            ->orWhere('customer_name', 'like', "%{$request->search}%")
+                            ->orWhereHas('user', function ($uq) use ($request) {
+                                $uq->where('name', 'like', "%{$request->search}%");
+                            })
+                            ->orWhereHas('workOrder', function ($wq) use ($request) {
+                                $wq->where('spk_number', 'like', "%{$request->search}%");
+                            });
+                      });
                 });
             })
             ->latest()
-            ->get();
+            ->paginate(4, ['*'], 'pending_page')
+            ->withQueryString();
 
         $verifiedPayments = Payment::with('order.user')
             ->where('status', 'verified')
             ->whereNotNull('midtrans_order_id')
+            ->whereBetween('verified_at', [$start, $end])
             ->when($request->search, function ($query) use ($request) {
-                $query->whereHas('order', function ($q) use ($request) {
-                    $q->where('order_code', 'like', "%{$request->search}%")
-                      ->orWhere('customer_name', 'like', "%{$request->search}%");
+                $query->where(function ($q) use ($request) {
+                    $q->where('invoice_number', 'like', "%{$request->search}%")
+                      ->orWhereHas('order', function ($oq) use ($request) {
+                          $oq->where('order_code', 'like', "%{$request->search}%")
+                            ->orWhere('customer_name', 'like', "%{$request->search}%")
+                            ->orWhereHas('user', function ($uq) use ($request) {
+                                $uq->where('name', 'like', "%{$request->search}%");
+                            })
+                            ->orWhereHas('workOrder', function ($wq) use ($request) {
+                                $wq->where('spk_number', 'like', "%{$request->search}%");
+                            });
+                      });
                 });
             })
             ->latest('verified_at')
-            ->take(20)
-            ->get();
+            ->paginate(4, ['*'], 'verified_page')
+            ->withQueryString();
 
         $rejectedPayments = Payment::with('order.user')
             ->where('status', 'rejected')
             ->whereNotNull('midtrans_order_id')
+            ->whereBetween('created_at', [$start, $end])
             ->when($request->search, function ($query) use ($request) {
-                $query->whereHas('order', function ($q) use ($request) {
-                    $q->where('order_code', 'like', "%{$request->search}%")
-                      ->orWhere('customer_name', 'like', "%{$request->search}%");
+                $query->where(function ($q) use ($request) {
+                    $q->where('invoice_number', 'like', "%{$request->search}%")
+                      ->orWhereHas('order', function ($oq) use ($request) {
+                          $oq->where('order_code', 'like', "%{$request->search}%")
+                            ->orWhere('customer_name', 'like', "%{$request->search}%")
+                            ->orWhereHas('user', function ($uq) use ($request) {
+                                $uq->where('name', 'like', "%{$request->search}%");
+                            })
+                            ->orWhereHas('workOrder', function ($wq) use ($request) {
+                                $wq->where('spk_number', 'like', "%{$request->search}%");
+                            });
+                      });
                 });
             })
             ->latest('verified_at')
-            ->take(50)
-            ->get();
+            ->paginate(4, ['*'], 'rejected_page')
+            ->withQueryString();
 
         $rejectReasons = collect($this->rejectReasonCatalog())
             ->map(static fn (array $reason, string $code): array => [
@@ -69,7 +114,80 @@ class FinanceController extends Controller
             ])
             ->values();
 
-        return view('finance.index', compact('pendingPayments', 'verifiedPayments', 'rejectedPayments', 'rejectReasons'));
+        $monthlyVerifiedAmount = Payment::where('status', 'verified')
+            ->whereBetween('verified_at', [$start, $end])
+            ->sum('amount');
+
+        $monthlyTotalTagihan = Order::whereBetween('created_at', [$start, $end])
+            ->sum('subtotal');
+
+        $verifiedToday = Payment::where('status', 'verified')
+            ->whereDate('updated_at', now()->toDateString())
+            ->count();
+
+        $ordersWaitingSettlement = Order::with('user')
+            ->where('order_status', 'finishing_waiting_settlement')
+            ->where('remaining_amount', '>', 0)
+            ->whereBetween('created_at', [$start, $end])
+            ->when($request->search, function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('order_code', 'like', "%{$request->search}%")
+                      ->orWhere('product_name', 'like', "%{$request->search}%")
+                      ->orWhere('customer_name', 'like', "%{$request->search}%")
+                      ->orWhereHas('user', function ($uq) use ($request) {
+                          $uq->where('name', 'like', "%{$request->search}%");
+                      })
+                      ->orWhereHas('workOrder', function ($wq) use ($request) {
+                          $wq->where('spk_number', 'like', "%{$request->search}%");
+                      });
+                });
+            })
+            ->latest()
+            ->paginate(4, ['*'], 'waiting_page')
+            ->withQueryString();
+
+        $pendingDpCount = Payment::where('status', 'pending')
+            ->where('method', 'dp')
+            ->whereNotNull('midtrans_order_id')
+            ->whereBetween('created_at', [$start, $end])
+            ->whereHas('order', function ($query) {
+                $query->where('order_status', '!=', 'rejected');
+            })
+            ->count();
+
+        $pendingSettlementCount = Payment::where('status', 'pending')
+            ->where('method', 'settlement')
+            ->whereNotNull('midtrans_order_id')
+            ->whereBetween('created_at', [$start, $end])
+            ->whereHas('order', function ($query) {
+                $query->where('order_status', '!=', 'rejected');
+            })
+            ->count();
+
+        $pendingFullCount = Payment::where('status', 'pending')
+            ->where('method', 'full')
+            ->whereNotNull('midtrans_order_id')
+            ->whereBetween('created_at', [$start, $end])
+            ->whereHas('order', function ($query) {
+                $query->where('order_status', '!=', 'rejected');
+            })
+            ->count();
+
+        return view('finance.index', compact(
+            'pendingPayments',
+            'verifiedPayments',
+            'rejectedPayments',
+            'rejectReasons',
+            'monthlyVerifiedAmount',
+            'monthlyTotalTagihan',
+            'verifiedToday',
+            'ordersWaitingSettlement',
+            'pendingDpCount',
+            'pendingSettlementCount',
+            'pendingFullCount',
+            'monthInput',
+            'monthLabel'
+        ));
     }
 
     private function syncMidtransPayments(): void

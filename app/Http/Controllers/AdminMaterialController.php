@@ -85,18 +85,47 @@ class AdminMaterialController extends Controller
             'slug' => ['nullable', 'string', 'max:170', Rule::unique('materials', 'slug')->ignore($material->id)],
             'base_price' => ['required', 'integer', 'min:1', 'max:2000000'],
             'is_active' => ['nullable', 'boolean'],
+            'title' => ['nullable', 'string', 'max:150'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'image_file' => ['nullable', 'image', 'max:2048'],
+            'tags' => ['nullable', 'string', 'max:500'],
+            'suitable_for' => ['nullable', 'string', 'max:500'],
+            'design_application' => ['nullable', 'string', 'max:500'],
         ]);
 
         $slug = trim((string) ($validated['slug'] ?? ''));
 
-        $material->update([
+        $updateData = [
             'name' => trim((string) $validated['name']),
             'slug' => $slug !== '' ? Str::slug($slug) : Str::slug((string) $validated['name']),
             'base_price' => (int) $validated['base_price'],
             'is_active' => (bool) ($validated['is_active'] ?? $material->is_active),
-        ]);
+            'title' => $validated['title'] ?? null,
+            'description' => $validated['description'] ?? null,
+        ];
 
-        return redirect()->route('admin.materials.index')->with('success', 'Data bahan berhasil diperbarui.');
+        if ($request->hasFile('image_file')) {
+            if ($material->image_path) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($material->image_path);
+            }
+            $updateData['image_path'] = $request->file('image_file')->store('materials', 'public');
+        }
+
+        $processArray = function ($input) {
+            if (!$input) return null;
+            $items = preg_split('/[\n,]+/', $input);
+            $items = array_map('trim', $items);
+            $items = array_filter($items, fn($v) => $v !== '');
+            return empty($items) ? null : array_values($items);
+        };
+
+        $updateData['tags'] = $processArray($validated['tags'] ?? null);
+        $updateData['suitable_for'] = $processArray($validated['suitable_for'] ?? null);
+        $updateData['design_application'] = $processArray($validated['design_application'] ?? null);
+
+        $material->update($updateData);
+
+        return back()->with('success', 'Data bahan berhasil diperbarui.');
     }
 
     public function edit(Material $material): View

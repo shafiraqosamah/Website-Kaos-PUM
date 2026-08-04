@@ -65,7 +65,7 @@
                 <th colspan="8"></th>
             </tr>
             <tr>
-                <th colspan="5" style="text-align: right; font-weight: bold;">TOTAL KAS MASUK TERVERIFIKASI:</th>
+                <th colspan="5" style="text-align: right; font-weight: bold;">TOTAL UANG MASUK:</th>
                 <th style="font-weight: bold; text-align: right;">{{ $ledgerSummary['verified_total'] }}</th>
                 <th colspan="8"></th>
             </tr>

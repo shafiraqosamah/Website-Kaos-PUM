@@ -151,7 +151,7 @@
     <div class="meta">
         <div>
             <div><strong>Kepada Yth,</strong> {{ $order->customer_name }}</div>
-            <div><strong>Order</strong> {{ $order->order_code }}</div>
+            <div><strong>No.Order</strong> {{ $order->order_code }}</div>
             <div><strong>Jenis</strong> {{ $paymentLabel }}</div>
         </div>
         <div>

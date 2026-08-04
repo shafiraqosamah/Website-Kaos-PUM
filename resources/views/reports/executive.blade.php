@@ -49,7 +49,6 @@
             <tr><th>Piutang</th><td>Rp {{ number_format($ledgerSummary['receivable'], 0, ',', '.') }}</td></tr>
             <tr><th>Pending</th><td>Rp {{ number_format($ledgerSummary['pending_total'], 0, ',', '.') }}</td></tr>
             <tr><th>Rejected</th><td>Rp {{ number_format($ledgerSummary['rejected_total'], 0, ',', '.') }}</td></tr>
-            <tr><th>Surplus/Defisit</th><td>Rp {{ number_format($ledgerSummary['surplus_deficit'], 0, ',', '.') }}</td></tr>
         </table>
     </div>
 </div>
@@ -61,7 +60,7 @@
             <tr>
                 <th>Tanggal</th>
                 <th>Invoice</th>
-                <th>Order</th>
+                <th>No.Order</th>
                 <th>Pelanggan</th>
                 <th>Transfer Tujuan</th>
                 <th>Nominal</th>
@@ -69,9 +68,38 @@
             </tr>
         </thead>
         <tbody>
-            @forelse($ledgerRows->take(20) as $row)
-                <tr>
-                    <td>{{ $row['date']?->format('d/m/Y H:i') ?? '-' }}</td>
+            @php
+                $ledgerLimit = $ledgerRows->take(20)->values();
+                $groupedLedger = $ledgerLimit->groupBy('order_code');
+                $ledgerColorMap = [];
+                $colors = ['#d97706', '#2563eb', '#10b981', '#8b5cf6', '#ec4899'];
+                $colorIdx = 0;
+                foreach($groupedLedger as $code => $items) {
+                    if ($items->count() > 1 && $code) {
+                        $ledgerColorMap[$code] = $colors[$colorIdx % count($colors)];
+                        $colorIdx++;
+                    }
+                }
+            @endphp
+            @forelse($ledgerLimit as $idx => $row)
+                @php
+                    $orderCode = $row['order_code'] ?? '';
+                    $groupColor = $ledgerColorMap[$orderCode] ?? null;
+                    $hasSameNext = isset($ledgerLimit[$idx + 1]) && ($ledgerLimit[$idx + 1]['order_code'] ?? '') === $orderCode;
+                    $hasSamePrev = isset($ledgerLimit[$idx - 1]) && ($ledgerLimit[$idx - 1]['order_code'] ?? '') === $orderCode;
+
+                    if ($groupColor) {
+                        if ($hasSameNext) {
+                            $borderStyle = 'border-bottom: 1px dashed #cbd5e1;';
+                        } else {
+                            $borderStyle = 'border-bottom: 2.5px solid #94a3b8;';
+                        }
+                    } else {
+                        $borderStyle = '';
+                    }
+                @endphp
+                <tr style="{{ $borderStyle }}">
+                    <td style="{{ $groupColor ? 'border-left: 5px solid ' . $groupColor . '; padding-left: 0.85rem !important;' : '' }}">{{ $row['date']?->format('d/m/Y H:i') ?? '-' }}</td>
                     <td>{{ $row['invoice'] }}</td>
                     <td>{{ $row['order_code'] }}</td>
                     <td>{{ $row['customer_name'] }}</td>
@@ -91,7 +119,7 @@
     <table>
         <thead>
             <tr>
-                <th>Order</th>
+                <th>No.Order</th>
                 <th>Pelanggan</th>
                 <th>Produk</th>
                 <th>Jenis</th>

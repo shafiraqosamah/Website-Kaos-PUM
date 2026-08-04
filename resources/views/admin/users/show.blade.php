@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('header_title', 'Detail User ' . $userData->name)
+
 @section('content')
 @php
     $roleBadge = match ($userData->role) {

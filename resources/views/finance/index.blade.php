@@ -22,10 +22,10 @@
         };
     };
 
-    $pendingDp = $pendingPayments->where('method', 'dp')->values();
-    $pendingSettlement = $pendingPayments->where('method', 'settlement')->values();
-    $pendingFull = $pendingPayments->where('method', 'full')->values();
-
+    $pendingDp = $pendingPayments->getCollection()->where('method', 'dp')->values();
+    $pendingSettlement = $pendingPayments->getCollection()->where('method', 'settlement')->values();
+    $pendingFull = $pendingPayments->getCollection()->where('method', 'full')->values();
+ 
     $expectedAmount = static function ($payment): float {
         return match ($payment->method) {
             'dp' => (float) ($payment->order->dp_amount ?? 0),
@@ -34,9 +34,9 @@
             default => (float) $payment->amount,
         };
     };
-
+ 
     $methodPriority = ['dp' => 1, 'settlement' => 2, 'full' => 3];
-    $verifiedPaymentsSorted = $verifiedPayments
+    $verifiedPaymentsSorted = $verifiedPayments->getCollection()
         ->sortBy(fn ($payment) => sprintf(
             '%s-%02d-%s',
             (string) ($payment->order->order_code ?? ''),
@@ -516,111 +516,73 @@
 </style>
 
 <section class="finance-page">
-    <div class="finance-header">
-        <h1>Data Pembayaran</h1>
-        <p>Pantau status transaksi pembayaran pelanggan yang diproses otomatis melalui Midtrans.</p>
+    <div class="finance-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+            <h1 style="margin:0;">Data Pembayaran</h1>
+            <p style="margin: 0.2rem 0 0; color: #49637a;">Pantau status transaksi pembayaran pelanggan yang diproses otomatis melalui Midtrans.</p>
+        </div>
+        <div class="filter-actions">
+            <form method="GET" action="{{ route('finance.index') }}" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                @if(request('search'))
+                    <input type="hidden" name="search" value="{{ request('search') }}">
+                @endif
+                <div>
+                    <label for="month" style="margin-bottom:0.2rem; display:block; font-size:0.8rem; color: #49637a; font-weight: 600;">Pilih Bulan</label>
+                    <input id="month" type="month" name="month" value="{{ $monthInput }}" style="padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem; outline: none; background: #fff;">
+                </div>
+                <button type="submit" class="btn btn-brand" style="align-self: flex-end; height: 35px; display: flex; align-items: center; justify-content: center; padding: 0.45rem 1rem; font-size: 0.88rem; font-weight: 600; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.08); background: #004b8f; color: #fff; border: none; border-radius: 6px;">
+                    Tampilkan
+                </button>
+            </form>
+        </div>
     </div>
 
     <div class="stats-row">
         <div class="stat-item dp">
             <div class="label">Pending DP</div>
-            <div class="value">{{ $pendingDp->count() }}</div>
+            <div class="value">{{ $pendingDpCount }}</div>
         </div>
         <div class="stat-item settlement">
             <div class="label">Pending Pelunasan</div>
-            <div class="value">{{ $pendingSettlement->count() }}</div>
+            <div class="value">{{ $pendingSettlementCount }}</div>
         </div>
         <div class="stat-item full">
             <div class="label">Pending Lunas Awal</div>
-            <div class="value">{{ $pendingFull->count() }}</div>
+            <div class="value">{{ $pendingFullCount }}</div>
+        </div>
+        <div class="stat-item full">
+            <div class="label">Uang Masuk ({{ $monthLabel }})</div>
+            <div class="value">Rp {{ number_format((float) $monthlyVerifiedAmount, 0, ',', '.') }}</div>
+            <div style="margin-top: 0.42rem; color: #7f96ae; font-size: 0.78rem; font-weight: 600;">{{ number_format((int) $verifiedToday, 0, ',', '.') }} diverifikasi hari ini</div>
+        </div>
+        <div class="stat-item dp">
+            <div class="label">Total Tagihan</div>
+            <div class="value">Rp {{ number_format((float) $monthlyTotalTagihan, 0, ',', '.') }}</div>
+            <div style="margin-top: 0.42rem; color: #7f96ae; font-size: 0.78rem; font-weight: 600;">{{ $monthLabel }}</div>
         </div>
     </div>
 
-@if($pendingPayments->isNotEmpty())
+
+
+@if($verifiedPayments->isEmpty() && $ordersWaitingSettlement->isEmpty() && $pendingPayments->isEmpty())
     <div class="section-card">
-        <h3>📋 Menunggu Verifikasi</h3>
-        <p>Verifikasi pembayaran untuk membuka tahapan produksi order</p>
-        <div style="overflow-x: auto;">
-            <table class="finance-table">
-                <thead>
-                    <tr>
-                        <th>Order</th>
-                        <th>Pelanggan</th>
-                        <th>Produk</th>
-                        <th>Qty</th>
-                        <th>Harga @</th>
-                        <th>Total Order</th>
-                        <th>Metode</th>
-                        <th>Status Midtrans</th>
-                        <th>Nominal Bayar</th>
-                        <th>Harus Bayar</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($pendingPayments as $payment)
-                        @php
-                            $expected = $expectedAmount($payment);
-                        @endphp
-                        <tr>
-                            <td><strong>{{ $payment->order->order_code }}</strong></td>
-                            <td>{{ $payment->order->user->name }}</td>
-                            <td>{{ $payment->order->product_name ?: '-' }}</td>
-                            <td>{{ number_format((int) $payment->order->total_pcs, 0, ',', '.') }}</td>
-                            <td>Rp {{ number_format((float) $payment->order->unit_price, 0, ',', '.') }}</td>
-                            <td>Rp {{ number_format((float) $payment->order->subtotal, 0, ',', '.') }}</td>
-                            <td><span class="pay-type {{ $paymentTypeClass($payment->method) }}">{{ $paymentTypeLabel($payment->method) }}</span></td>
-                            <td>{{ $payment->midtrans_status ?: '-' }}</td>
-                            <td>Rp {{ number_format($payment->amount, 0, ',', '.') }}</td>
-                            <td><strong>Rp {{ number_format($expected, 0, ',', '.') }}</strong></td>
-                            <td>
-                                @php($isMidtransOnly = (bool) $payment->midtrans_order_id)
-                                <button
-                                    type="button"
-                                    class="btn-detail js-open-detail"
-                                    data-verify-url=""
-                                    data-invoice-url="{{ $payment->invoice_number ? route('finance.invoices.show', $payment) : '' }}"
-                                    data-order-code="{{ $payment->order->order_code }}"
-                                    data-customer="{{ $payment->order->user->name }}"
-                                    data-product="{{ $payment->order->product_name ?: '-' }}"
-                                    data-qty="{{ number_format((int) $payment->order->total_pcs, 0, ',', '.') }}"
-                                    data-method="{{ $paymentTypeLabel($payment->method) }}"
-                                    data-total="Rp {{ number_format((float) $payment->order->subtotal, 0, ',', '.') }}"
-                                    data-dp="Rp {{ number_format((float) ($payment->order->dp_amount ?? 0), 0, ',', '.') }}"
-                                    data-sisa="Rp {{ number_format((float) ($payment->order->remaining_amount ?? 0), 0, ',', '.') }}"
-                                    data-midtrans-status="{{ $payment->midtrans_status ?: '-' }}"
-                                    data-midtrans-order="{{ $payment->midtrans_order_id ?: '-' }}"
-                                    data-midtrans-transaction="{{ $payment->midtrans_transaction_id ?: '-' }}"
-                                    data-midtrans-channel="{{ $payment->midtrans_payment_type ?: '-' }}"
-                                    data-readonly="{{ $isMidtransOnly ? '1' : '0' }}"
-                                >
-                                    Detail
-                                </button>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
-@endif
-
-<div class="section-card">
-    <h3>Data Pembayaran Pelanggan</h3>
-    <p>Pembayaran yang telah berhasil diverifikasi dan invoice telah diterbitkan</p>
-    
-    @if($verifiedPayments->isEmpty())
+        <h3>Data Pembayaran Pelanggan</h3>
+        <p>Pembayaran yang telah berhasil diverifikasi dan invoice telah diterbitkan, atau pesanan yang belum melakukan pembayaran.</p>
         <div class="empty-state">
             <h4>Belum Ada</h4>
-            <p>Invoice akan muncul setelah pembayaran diverifikasi.</p>
+            <p>Data pembayaran atau tagihan pesanan belum lunas akan muncul di sini.</p>
         </div>
-    @else
+    </div>
+@else
+    <div class="section-card">
+        <h3>Data Pembayaran Pelanggan</h3>
+        <p>Pembayaran yang telah berhasil diverifikasi dan invoice telah diterbitkan, serta pesanan yang belum melunasi atau belum melakukan pembayaran.</p>
         <div style="overflow-x: auto;">
             <table class="finance-table">
                 <thead>
                     <tr>
                         <th>Invoice</th>
-                        <th>Order</th>
+                        <th>No.Order</th>
                         <th>Pelanggan</th>
                         <th>Metode</th>
                         <th>Nominal</th>
@@ -629,9 +591,103 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($verifiedPaymentsSorted as $payment)
-                        <tr>
-                            <td><strong>{{ $payment->invoice_number ?? '-' }}</strong></td>
+                    {{-- Render pending payments (DP, Full, Settlement) --}}
+                    @foreach($pendingPayments as $payment)
+                        <tr style="background: #fffcf9; border-left: 3px solid #d97706;">
+                            <td><span style="color: #94a3b8; font-style: italic;">Belum Lunas</span></td>
+                            <td><strong>{{ $payment->order->order_code }}</strong></td>
+                            <td>{{ $payment->order->user->name }}</td>
+                            <td><span class="pay-type {{ $paymentTypeClass($payment->method) }}">{{ $paymentTypeLabel($payment->method) }}</span></td>
+                            <td><strong style="color: #c22b2b;">Rp {{ number_format($payment->amount, 0, ',', '.') }}</strong></td>
+                            <td><span style="color: #cbd5e1;">-</span></td>
+                            <td>
+                                <div class="action-links" style="display: flex; align-items: center; gap: 0.55rem;">
+                                    <span style="color: #d97706; font-weight: 700; font-size: 0.78rem;">Menunggu Pembayaran</span>
+                                    @php
+                                        $isMidtransOnly = (bool) $payment->midtrans_order_id;
+                                    @endphp
+                                    <button
+                                        type="button"
+                                        class="btn-detail js-open-detail"
+                                        data-verify-url=""
+                                        data-invoice-url="{{ $payment->invoice_number ? route('finance.invoices.show', $payment) : '' }}"
+                                        data-order-code="{{ $payment->order->order_code }}"
+                                        data-customer="{{ $payment->order->user->name }}"
+                                        data-product="{{ $payment->order->product_name ?: '-' }}"
+                                        data-qty="{{ number_format((int) $payment->order->total_pcs, 0, ',', '.') }}"
+                                        data-method="{{ $paymentTypeLabel($payment->method) }}"
+                                        data-total="Rp {{ number_format((float) $payment->order->subtotal, 0, ',', '.') }}"
+                                        data-dp="Rp {{ number_format((float) ($payment->order->dp_amount ?? 0), 0, ',', '.') }}"
+                                        data-sisa="Rp {{ number_format((float) ($payment->order->remaining_amount ?? 0), 0, ',', '.') }}"
+                                        data-midtrans-status="{{ $payment->midtrans_status ?: '-' }}"
+                                        data-midtrans-order="{{ $payment->midtrans_order_id ?: '-' }}"
+                                        data-midtrans-transaction="{{ $payment->midtrans_transaction_id ?: '-' }}"
+                                        data-midtrans-channel="{{ $payment->midtrans_payment_type ?: '-' }}"
+                                        data-readonly="1"
+                                        style="padding: 0.25rem 0.5rem; font-size: 0.72rem;"
+                                    >
+                                        Detail
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
+
+                    {{-- Render orders waiting for settlement that do NOT have a pending payment yet --}}
+                    @foreach($ordersWaitingSettlement as $order)
+                        @php
+                            $hasPendingSettlement = $order->payments()
+                                ->where('method', 'settlement')
+                                ->where('status', 'pending')
+                                ->exists();
+                        @endphp
+                        @if(!$hasPendingSettlement)
+                            <tr style="background: #fffcf9; border-left: 3px solid #d97706;">
+                                <td><span style="color: #94a3b8; font-style: italic;">Belum Lunas</span></td>
+                                <td><strong>{{ $order->order_code }}</strong></td>
+                                <td>{{ $order->user->name }}</td>
+                                <td><span class="pay-type pay-type-settlement">Pelunasan</span></td>
+                                <td><strong style="color: #c22b2b;">Rp {{ number_format((float) $order->remaining_amount, 0, ',', '.') }}</strong></td>
+                                <td><span style="color: #cbd5e1;">-</span></td>
+                                <td>
+                                    <span style="color: #94a3b8; font-style: italic; font-size: 0.8rem;">Belum Dibayar</span>
+                                </td>
+                            </tr>
+                        @endif
+                    @endforeach
+
+                    {{-- Render verified payments --}}
+                    @php
+                        $groupedVerified = collect($verifiedPaymentsSorted)->groupBy(fn($p) => $p->order->order_code ?? '');
+                        $verifiedColorMap = [];
+                        $colors = ['#d97706', '#2563eb', '#10b981', '#8b5cf6', '#ec4899'];
+                        $colorIdx = 0;
+                        foreach($groupedVerified as $code => $items) {
+                            if ($items->count() > 1 && $code) {
+                                $verifiedColorMap[$code] = $colors[$colorIdx % count($colors)];
+                                $colorIdx++;
+                            }
+                        }
+                    @endphp
+                    @foreach($verifiedPaymentsSorted as $idx => $payment)
+                        @php
+                            $orderCode = $payment->order->order_code ?? '';
+                            $groupColor = $verifiedColorMap[$orderCode] ?? null;
+                            $hasSameNext = isset($verifiedPaymentsSorted[$idx + 1]) && ($verifiedPaymentsSorted[$idx + 1]->order->order_code ?? '') === $orderCode;
+                            $hasSamePrev = isset($verifiedPaymentsSorted[$idx - 1]) && ($verifiedPaymentsSorted[$idx - 1]->order->order_code ?? '') === $orderCode;
+
+                            if ($groupColor) {
+                                if ($hasSameNext) {
+                                    $borderStyle = 'border-bottom: 1px dashed #cbd5e1;';
+                                } else {
+                                    $borderStyle = 'border-bottom: 2.5px solid #94a3b8;';
+                                }
+                            } else {
+                                $borderStyle = '';
+                            }
+                        @endphp
+                        <tr style="{{ $borderStyle }}">
+                            <td style="{{ $groupColor ? 'border-left: 5px solid ' . $groupColor . '; padding-left: 0.85rem !important;' : '' }}"><strong>{{ $payment->invoice_number ?? '-' }}</strong></td>
                             <td>{{ $payment->order->order_code }}</td>
                             <td>{{ $payment->order->user->name }}</td>
                             <td><span class="pay-type {{ $paymentTypeClass($payment->method) }}">{{ $paymentTypeLabel($payment->method) }}</span></td>
@@ -668,8 +724,31 @@
                 </tbody>
             </table>
         </div>
-    @endif
-</div>
+ 
+        @if($pendingPayments->hasPages() || $ordersWaitingSettlement->hasPages() || $verifiedPayments->hasPages())
+            <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem; border-top: 1px solid #eaeaea; padding-top: 1.2rem;">
+                @if($pendingPayments->hasPages())
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                        <span style="font-size: 0.8rem; color: #49637a; font-weight: 700;">Halaman Menunggu Pembayaran:</span>
+                        <div>{{ $pendingPayments->links() }}</div>
+                    </div>
+                @endif
+                @if($ordersWaitingSettlement->hasPages())
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                        <span style="font-size: 0.8rem; color: #49637a; font-weight: 700;">Halaman Belum Dibayar:</span>
+                        <div>{{ $ordersWaitingSettlement->links() }}</div>
+                    </div>
+                @endif
+                @if($verifiedPayments->hasPages())
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                        <span style="font-size: 0.8rem; color: #49637a; font-weight: 700;">Halaman Riwayat Terverifikasi:</span>
+                        <div>{{ $verifiedPayments->links() }}</div>
+                    </div>
+                @endif
+            </div>
+        @endif
+    </div>
+@endif
 
 @if($rejectedPayments->isNotEmpty())
     <div class="section-card">
@@ -680,7 +759,7 @@
             <table class="finance-table">
                 <thead>
                     <tr>
-                        <th>Order</th>
+                        <th>No.Order</th>
                         <th>Pelanggan</th>
                         <th>Metode</th>
                         <th>Nominal</th>
@@ -728,6 +807,11 @@
                 </tbody>
             </table>
         </div>
+        @if($rejectedPayments->hasPages())
+            <div style="margin-top: 1rem; border-top: 1px solid #eaeaea; padding-top: 0.8rem; display: flex; justify-content: flex-end;">
+                {{ $rejectedPayments->links() }}
+            </div>
+        @endif
     </div>
 @endif
 

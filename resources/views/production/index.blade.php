@@ -236,7 +236,7 @@
                 <thead>
                     <tr>
                         <th>SPK</th>
-                        <th>Order</th>
+                        <th>No.Order</th>
                         <th>Pelanggan</th>
                         <th>Estimasi Selesai</th>
                         <th>Status</th>
@@ -258,7 +258,7 @@
                         <td>{{ $order->user->name }}</td>
                         <td>{{ $order->estimated_finish_date?->format('d/m/Y') ?? '-' }}</td>
                         <td>
-                            <span class="status-badge {{ $statusClass($order->order_status) }}">{{ $statusLabel($order->order_status) }}</span>
+                            <span class="status-pill {{ $statusClass($order->order_status) }}">{{ $statusLabel($order->order_status) }}</span>
                         </td>
                         <td class="prod-progress">
                             <strong>{{ $doneSteps }}/{{ $steps->count() }}</strong>
@@ -296,6 +296,11 @@
                 </tbody>
             </table>
         </div>
+        @if($activeOrders->hasPages())
+            <div style="margin-top: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: flex-end;">
+                {{ $activeOrders->links() }}
+            </div>
+        @endif
 
         <div class="prod-table-card" style="overflow:auto;">
             <div class="history-head">
@@ -306,7 +311,7 @@
                 <thead>
                     <tr>
                         <th>SPK</th>
-                        <th>Order</th>
+                        <th>No.Order</th>
                         <th>Pelanggan</th>
                         <th>Spesifikasi</th>
                         <th>Total Pcs</th>
@@ -347,6 +352,11 @@
                 </tbody>
             </table>
         </div>
+        @if($completedOrders->hasPages())
+            <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
+                {{ $completedOrders->links() }}
+            </div>
+        @endif
     </div>
 </div>
 @endsection

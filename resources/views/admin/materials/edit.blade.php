@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('header_title', 'Edit Bahan ' . $material->name)
+
 @section('content')
 <style>
     .material-edit-card {
@@ -57,6 +59,29 @@
         display: flex;
         gap: 0.55rem;
         flex-wrap: wrap;
+    }
+
+    .material-edit-grid input[type="file"] {
+        padding: 0.35rem 0.5rem;
+        cursor: pointer;
+    }
+
+    .material-edit-grid input[type="file"]::file-selector-button {
+        background: #e9ecef;
+        border: 1px solid #ced4da;
+        border-radius: 8px;
+        padding: 0.25rem 0.65rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #495057;
+        cursor: pointer;
+        margin-right: 0.5rem;
+        transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+    }
+
+    .material-edit-grid input[type="file"]::file-selector-button:hover {
+        background-color: #dee2e6;
+        border-color: #c4c8cb;
     }
 
     .material-edit-actions .btn {
@@ -288,7 +313,7 @@
     <h1>Edit Bahan</h1>
     <p>Perbarui data bahan dan harga per pcs.</p>
 
-    <form method="POST" action="{{ route('admin.materials.update', $material) }}">
+    <form method="POST" action="{{ route('admin.materials.update', $material) }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
 
@@ -314,6 +339,41 @@
                     <option value="1" {{ old('is_active', $material->is_active ? '1' : '0') === '1' ? 'selected' : '' }}>Aktif</option>
                     <option value="0" {{ old('is_active', $material->is_active ? '1' : '0') === '0' ? 'selected' : '' }}>Nonaktif</option>
                 </select>
+            </div>
+
+            <div class="field-full">
+                <label for="title">Judul Singkat (Katalog Pelanggan)</label>
+                <input id="title" name="title" type="text" value="{{ old('title', $material->title) }}" placeholder="Contoh: Sangat Tebal & Awet">
+            </div>
+
+            <div class="field-full">
+                <label for="description">Deskripsi Lengkap (Katalog Pelanggan)</label>
+                <textarea id="description" name="description" rows="3" style="width: 100%; border: 1px solid #c3d2e2; border-radius: 10px; padding: 0.55rem 0.68rem; font-size: 0.82rem; color: #13283a; background: #fff;">{{ old('description', $material->description) }}</textarea>
+            </div>
+
+            <div class="field-full">
+                <label for="image_file">Foto Bahan (Katalog Pelanggan)</label>
+                @if($material->image_path)
+                    <div style="margin-bottom: 0.5rem;">
+                        <img src="{{ asset('storage/' . $material->image_path) }}" alt="{{ $material->name }}" style="max-height: 100px; border-radius: 8px; border: 1px solid #e4ecf3;">
+                    </div>
+                @endif
+                <input id="image_file" name="image_file" type="file" accept="image/*">
+            </div>
+
+            <div class="field-full">
+                <label for="tags">Tag Karakteristik (Pisahkan dengan koma)</label>
+                <input id="tags" name="tags" type="text" value="{{ old('tags', is_array($material->tags) ? implode(', ', $material->tags) : '') }}" placeholder="Contoh: 100% Katun, Halus, Anti-Bakteri">
+            </div>
+
+            <div class="field-full">
+                <label for="suitable_for">Cocok Untuk (Pisahkan dengan koma)</label>
+                <input id="suitable_for" name="suitable_for" type="text" value="{{ old('suitable_for', is_array($material->suitable_for) ? implode(', ', $material->suitable_for) : '') }}" placeholder="Contoh: Kaos premium, Seragam kantor">
+            </div>
+
+            <div class="field-full">
+                <label for="design_application">Aplikasi Desain (Pisahkan dengan baris baru atau koma)</label>
+                <textarea id="design_application" name="design_application" rows="3" style="width: 100%; border: 1px solid #c3d2e2; border-radius: 10px; padding: 0.55rem 0.68rem; font-size: 0.82rem; color: #13283a; background: #fff;">{{ old('design_application', is_array($material->design_application) ? implode("\n", $material->design_application) : '') }}</textarea>
             </div>
         </div>
 

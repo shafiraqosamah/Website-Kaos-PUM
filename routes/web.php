@@ -64,8 +64,11 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware('role:' . User::ROLE_PRODUCTION . ',' . User::ROLE_ADMIN)->group(function (): void {
         Route::get('/production/orders', [ProductionController::class, 'index'])->name('production.index');
         Route::get('/production/orders/{order}', [ProductionController::class, 'show'])->name('production.show');
-        Route::get('/production/orders/{order}/spk', [ProductionController::class, 'spk'])->name('production.spk');
         Route::post('/production/orders/{order}/steps/{step}', [ProductionController::class, 'updateStep'])->name('production.step.update');
+    });
+
+    Route::middleware('role:' . User::ROLE_PRODUCTION . ',' . User::ROLE_ADMIN . ',' . User::ROLE_MANAGER . ',' . User::ROLE_OWNER)->group(function (): void {
+        Route::get('/production/orders/{order}/spk', [ProductionController::class, 'spk'])->name('production.spk');
     });
 
     Route::middleware('role:' . User::ROLE_ADMIN)->group(function (): void {
@@ -90,7 +93,7 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/reports/orders-balance/{order}/revision', [ReportController::class, 'requestRevision'])->name('reports.orders.revision');
     });
 
-    Route::middleware('role:' . User::ROLE_ADMIN . ',' . User::ROLE_FINANCE . ',' . User::ROLE_MANAGER . ',' . User::ROLE_OWNER)->group(function (): void {
+    Route::middleware('role:' . User::ROLE_FINANCE . ',' . User::ROLE_MANAGER . ',' . User::ROLE_OWNER)->group(function (): void {
         Route::get('/reports/finance-ledger', [ReportController::class, 'finance'])->name('reports.finance');
         Route::get('/reports/finance-ledger/export', [ReportController::class, 'exportFinance'])->name('reports.finance.export');
     });

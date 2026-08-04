@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('header_title', 'Kelola User')
+
 @section('content')
 @php
     $roleMeta = [

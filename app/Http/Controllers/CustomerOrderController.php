@@ -728,6 +728,7 @@ class CustomerOrderController extends Controller
                 ->get();
 
             $dbColorMap = [];
+            $dbMaterialMap = [];
             foreach ($materialsWithColors as $material) {
                 if ($material->colors->isNotEmpty()) {
                     $dbColorMap[$material->name] = $material->colors->map(fn ($color) => [
@@ -735,15 +736,37 @@ class CustomerOrderController extends Controller
                         'hex' => $color->hex_code ?? '#CCCCCC',
                     ])->values()->all();
                 }
+                $dbMaterialMap[$material->name] = $material;
             }
         } catch (\Throwable $e) {
             report($e);
             $dbColorMap = [];
+            $dbMaterialMap = [];
         }
 
-        // Merge: static metadata + DB colors
+        // Merge: static metadata + DB metadata + DB colors
+        $dbMaterials = $this->masterMaterialOptions();
         $catalog = [];
-        foreach ($staticMeta as $materialName => $meta) {
+        foreach ($dbMaterials as $materialName) {
+            $dbMat = $dbMaterialMap[$materialName] ?? null;
+            $staticMetaObj = $staticMeta[$materialName] ?? [
+                'title' => 'Bahan Spesial',
+                'description' => 'Bahan berkualitas pilihan khusus untuk kebutuhan custom Anda.',
+                'image' => 'images/bahan/cotton30s.png',
+                'tags' => ['Premium Quality'],
+                'suitable_for' => ['Seragam', 'Kaos Custom'],
+                'design_application' => ['Konsultasikan dengan admin'],
+            ];
+
+            $meta = [
+                'title' => $dbMat && $dbMat->title ? $dbMat->title : $staticMetaObj['title'],
+                'description' => $dbMat && $dbMat->description ? $dbMat->description : $staticMetaObj['description'],
+                'image' => $dbMat && $dbMat->image_path ? 'storage/' . $dbMat->image_path : $staticMetaObj['image'],
+                'tags' => $dbMat && is_array($dbMat->tags) && count($dbMat->tags) > 0 ? $dbMat->tags : $staticMetaObj['tags'],
+                'suitable_for' => $dbMat && is_array($dbMat->suitable_for) && count($dbMat->suitable_for) > 0 ? $dbMat->suitable_for : $staticMetaObj['suitable_for'],
+                'design_application' => $dbMat && is_array($dbMat->design_application) && count($dbMat->design_application) > 0 ? $dbMat->design_application : $staticMetaObj['design_application'],
+            ];
+
             $meta['colors'] = $dbColorMap[$materialName] ?? $defaultColors;
             $catalog[$materialName] = $meta;
         }

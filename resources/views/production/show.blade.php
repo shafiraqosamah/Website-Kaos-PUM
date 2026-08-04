@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('header_title', 'Progress Produksi ' . $order->order_code)
+
 @section('content')
 @php
     $steps = $order->productionSteps;

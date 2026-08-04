@@ -23,11 +23,18 @@ class ProductionController extends Controller
                 $query->where(function ($q) use ($request) {
                     $q->where('order_code', 'like', "%{$request->search}%")
                       ->orWhere('product_name', 'like', "%{$request->search}%")
-                      ->orWhere('customer_name', 'like', "%{$request->search}%");
+                      ->orWhere('customer_name', 'like', "%{$request->search}%")
+                      ->orWhereHas('user', function ($uq) use ($request) {
+                          $uq->where('name', 'like', "%{$request->search}%");
+                      })
+                      ->orWhereHas('workOrder', function ($wq) use ($request) {
+                          $wq->where('spk_number', 'like', "%{$request->search}%");
+                      });
                 });
             })
             ->latest()
-            ->get();
+            ->paginate(3, ['*'], 'active_page')
+            ->withQueryString();
 
         $completedOrders = Order::with(['user', 'workOrder', 'productionSteps'])
             ->where('order_status', 'completed')
@@ -35,12 +42,18 @@ class ProductionController extends Controller
                 $query->where(function ($q) use ($request) {
                     $q->where('order_code', 'like', "%{$request->search}%")
                       ->orWhere('product_name', 'like', "%{$request->search}%")
-                      ->orWhere('customer_name', 'like', "%{$request->search}%");
+                      ->orWhere('customer_name', 'like', "%{$request->search}%")
+                      ->orWhereHas('user', function ($uq) use ($request) {
+                          $uq->where('name', 'like', "%{$request->search}%");
+                      })
+                      ->orWhereHas('workOrder', function ($wq) use ($request) {
+                          $wq->where('spk_number', 'like', "%{$request->search}%");
+                      });
                 });
             })
             ->latest('updated_at')
-            ->take(100)
-            ->get();
+            ->paginate(3, ['*'], 'completed_page')
+            ->withQueryString();
 
         return view('production.index', compact('activeOrders', 'completedOrders', 'user'));
     }

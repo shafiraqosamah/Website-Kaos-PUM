@@ -58,7 +58,16 @@ class ReportController extends Controller
                 $query->where(function ($q) use ($request) {
                     $q->where('order_code', 'like', "%{$request->search}%")
                       ->orWhere('product_name', 'like', "%{$request->search}%")
-                      ->orWhere('customer_name', 'like', "%{$request->search}%");
+                      ->orWhere('customer_name', 'like', "%{$request->search}%")
+                      ->orWhereHas('user', function ($uq) use ($request) {
+                          $uq->where('name', 'like', "%{$request->search}%");
+                      })
+                      ->orWhereHas('workOrder', function ($wq) use ($request) {
+                          $wq->where('spk_number', 'like', "%{$request->search}%");
+                      })
+                      ->orWhereHas('payments', function ($pq) use ($request) {
+                          $pq->where('invoice_number', 'like', "%{$request->search}%");
+                      });
                 });
             })
             ->latest();
@@ -109,7 +118,16 @@ class ReportController extends Controller
                 $query->where(function ($q) use ($request) {
                     $q->where('order_code', 'like', "%{$request->search}%")
                       ->orWhere('product_name', 'like', "%{$request->search}%")
-                      ->orWhere('customer_name', 'like', "%{$request->search}%");
+                      ->orWhere('customer_name', 'like', "%{$request->search}%")
+                      ->orWhereHas('user', function ($uq) use ($request) {
+                          $uq->where('name', 'like', "%{$request->search}%");
+                      })
+                      ->orWhereHas('workOrder', function ($wq) use ($request) {
+                          $wq->where('spk_number', 'like', "%{$request->search}%");
+                      })
+                      ->orWhereHas('payments', function ($pq) use ($request) {
+                          $pq->where('invoice_number', 'like', "%{$request->search}%");
+                      });
                 });
             })
             ->latest();
@@ -497,7 +515,7 @@ class ReportController extends Controller
     {
         $orders = Order::query()
             ->whereBetween('created_at', [$start, $end])
-            ->with(['productionSteps'])
+            ->with(['productionSteps', 'workOrder'])
             ->latest()
             ->get();
 
@@ -505,7 +523,12 @@ class ReportController extends Controller
             $doneSteps = $order->productionSteps->where('status', 'done')->count();
             $stepCount = $order->productionSteps->count();
 
+            $finishingStep = $order->productionSteps->first(function ($s) {
+                return strtolower(trim((string) $s->step_name)) === 'finishing';
+            });
+
             return [
+                'id' => $order->id,
                 'order_code' => $order->order_code,
                 'customer_name' => $order->customer_name,
                 'product_name' => $order->product_name,
@@ -516,6 +539,8 @@ class ReportController extends Controller
                 'created_at' => $order->created_at,
                 'estimated_finish_date' => $order->estimated_finish_date,
                 'updated_at' => $order->updated_at,
+                'spk_number' => $order->workOrder?->spk_number,
+                'finished_at' => $finishingStep?->completed_at,
             ];
         });
 

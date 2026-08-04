@@ -664,6 +664,7 @@
 
         .auth-main {
             min-width: 0;
+            padding-bottom: 80px;
         }
 
         .auth-main.customer-main {
@@ -902,6 +903,7 @@
             font-size: 0.72rem;
             font-weight: 700;
             background: #e6eef6;
+            text-align: center;
         }
 
         .status-neutral { background: #e6eef6; color: #24445e; }
@@ -1000,12 +1002,16 @@
 <body>
 <div class="shell">
     @auth
-        @php($isCustomer = auth()->user()->hasRole('customer'))
-        @php($isFinance = strtolower((string) auth()->user()->role) === 'finance')
         @php
+            $isCustomer = auth()->user()->hasRole('customer');
+            $isFinance = strtolower((string) auth()->user()->role) === 'finance';
             $financePendingCount = 0;
             if ($isFinance) {
-                $financePendingCount = \App\Models\Payment::where('status', 'pending')->count();
+                $financePendingCount = \App\Models\Payment::where('status', 'pending')
+                    ->whereHas('order', function ($query) {
+                        $query->where('order_status', '!=', 'rejected');
+                    })
+                    ->count();
             }
         @endphp
         <div class="customer-shell-topbar">
@@ -1128,10 +1134,10 @@
                             Data Pesanan
                         </a>
                         <a href="{{ route('finance.index') }}" class="{{ request()->routeIs('finance.*') ? 'active' : '' }}">
-                            <span class="nav-ico">💵</span>
+                            <span class="nav-ico">💰</span>
                             <span class="nav-dot"></span>
                             Data Pembayaran
-                            <span class="nav-count">{{ $financePendingCount ?? \App\Models\Payment::where('status', 'pending')->count() }}</span>
+                            <span class="nav-count">{{ $financePendingCount ?? \App\Models\Payment::where('status', 'pending')->whereHas('order', function ($query) { $query->where('order_status', '!=', 'rejected'); })->count() }}</span>
                         </a>
                         <a href="{{ route('reports.finance') }}" class="{{ request()->routeIs('reports.finance') ? 'active' : '' }}">
                             <span class="nav-ico">📊</span>
@@ -1166,11 +1172,6 @@
                             <span class="nav-ico">📄</span>
                             <span class="nav-dot"></span>
                             Laporan Pemesanan
-                        </a>
-                        <a href="{{ route('reports.finance') }}" class="{{ request()->routeIs('reports.finance') ? 'active' : '' }}">
-                            <span class="nav-ico">📄</span>
-                            <span class="nav-dot"></span>
-                            Laporan Pembayaran (Midtrans)
                         </a>
                         <a href="{{ route('reports.production') }}" class="{{ request()->routeIs('reports.production') ? 'active' : '' }}">
                             <span class="nav-ico">📄</span>
@@ -1240,9 +1241,13 @@
             </aside>
 
             <main class="auth-main customer-main">
-                @php($hideBackButton = request()->routeIs('home', 'login', 'register'))
+                @php
+                    $hideBackButton = request()->routeIs('home', 'login', 'register');
+                @endphp
                 @unless ($hideBackButton)
-                    @php($backFallback = ($isCustomer ?? auth()->user()->hasRole('customer')) ? route('home') : route('dashboard'))
+                    @php
+                        $backFallback = ($isCustomer ?? auth()->user()->hasRole('customer')) ? route('home') : route('dashboard');
+                    @endphp
                     <div class="page-back-wrap">
                         <a class="page-back-btn" href="{{ $backFallback }}" onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }">
                             <img class="arrow-icon" src="{{ asset('images/leftarrow.png') }}" alt="Back">

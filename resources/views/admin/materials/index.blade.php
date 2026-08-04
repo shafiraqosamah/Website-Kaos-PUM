@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('header_title', 'Kelola Bahan')
+
 @section('content')
 <style>
     .materials-page {

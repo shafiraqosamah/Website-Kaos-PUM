@@ -49,24 +49,66 @@ class AppServiceProvider extends ServiceProvider
 
                     $adminCancelledOrders = \App\Models\Order::where('order_status', 'rejected')
                         ->where('updated_at', '>=', now()->subDays(3))
-                        ->count();
-                    if ($adminCancelledOrders > 0) {
-                        $notifications[] = [
-                            'text' => "Ada {$adminCancelledOrders} pesanan yang ditolak/dibatalkan sistem baru-baru ini.",
-                            'url' => route('reports.orders') . '?cancelled_page=1',
-                            'icon' => '❌'
-                        ];
+                        ->get();
+                    if ($adminCancelledOrders->isNotEmpty()) {
+                        $orderCodes = $adminCancelledOrders->map(fn($o) => $o->order_code)->filter()->unique()->implode(', ');
+                        if ($orderCodes) {
+                            $notifications[] = [
+                                'text' => "Pesanan dengan nomor order {$orderCodes} ditolak/dibatalkan sistem karna melebihi batas waktu",
+                                'url' => route('reports.orders') . '?cancelled_page=1',
+                                'icon' => '❌'
+                            ];
+                        }
                     }
                 }
 
-                if ($role === 'finance' || $role === 'admin' || $role === 'owner') {
-                    $pendingPayments = \App\Models\Payment::where('status', 'pending')->count();
-                    if ($pendingPayments > 0) {
-                        $notifications[] = [
-                            'text' => "Ada {$pendingPayments} pembayaran menunggu verifikasi.",
-                            'url' => route('finance.index'),
-                            'icon' => '💰'
-                        ];
+                if ($role === 'finance' || $role === 'admin' || $role === 'owner' || $role === 'manager') {
+                    $pendingPaymentsList = \App\Models\Payment::with('order')
+                        ->where('status', 'pending')
+                        ->whereHas('order', function ($query) {
+                            $query->where('order_status', '!=', 'rejected');
+                        })
+                        ->get();
+                    if ($pendingPaymentsList->isNotEmpty()) {
+                        $orderCodes = $pendingPaymentsList->map(fn($p) => $p->order->order_code ?? '')->filter()->unique()->implode(', ');
+                        if ($orderCodes) {
+                            $notifications[] = [
+                                'text' => "Pesanan dengan nomor order {$orderCodes} belum melakukan pembayaran.",
+                                'url' => route('finance.index'),
+                                'icon' => '💰'
+                            ];
+                        }
+                    }
+
+                    $waitingSettlementOrders = \App\Models\Order::where('order_status', 'finishing_waiting_settlement')
+                        ->where('remaining_amount', '>', 0)
+                        ->get();
+                    if ($waitingSettlementOrders->isNotEmpty()) {
+                        $orderCodes = $waitingSettlementOrders->map(fn($o) => $o->order_code)->filter()->unique()->implode(', ');
+                        $count = $waitingSettlementOrders->count();
+                        if ($orderCodes) {
+                            $notifications[] = [
+                                'text' => "Ada {$count} pesanan dengan nomor order {$orderCodes} membutuhkan pelunasan dari pelanggan, silakan pantau di sini.",
+                                'url' => route('finance.index'),
+                                'icon' => '💰'
+                            ];
+                        }
+                    }
+
+                    $verifiedSettlementPayments = \App\Models\Payment::with('order')
+                        ->where('method', 'settlement')
+                        ->where('status', 'verified')
+                        ->whereDate('updated_at', now()->toDateString())
+                        ->get();
+                    if ($verifiedSettlementPayments->isNotEmpty()) {
+                        $orderCodes = $verifiedSettlementPayments->map(fn($p) => $p->order->order_code ?? '')->filter()->unique()->implode(', ');
+                        if ($orderCodes) {
+                            $notifications[] = [
+                                'text' => "Pesanan dengan nomor order {$orderCodes} sudah dilakukan pelunasan oleh pelanggan.",
+                                'url' => route('finance.index'),
+                                'icon' => '✅'
+                            ];
+                        }
                     }
                 }
 
@@ -81,6 +123,27 @@ class AppServiceProvider extends ServiceProvider
                             'icon' => '🏭'
                         ];
                     }
+
+                    // Notifikasi pesanan finishing yang pelunasannya sudah dikonfirmasi
+                    $readyForFinishing = \App\Models\Order::where('order_status', 'in_production')
+                        ->where('payment_type', 'dp')
+                        ->where('remaining_amount', 0)
+                        ->whereHas('productionSteps', function ($query) {
+                            $query->where('step_name', 'Finishing')
+                                  ->whereIn('status', ['pending', 'in_progress']);
+                        })
+                        ->get();
+                    if ($readyForFinishing->isNotEmpty()) {
+                        $orderCodes = $readyForFinishing->map(fn($o) => $o->order_code)->filter()->unique()->implode(', ');
+                        $count = $readyForFinishing->count();
+                        if ($orderCodes) {
+                            $notifications[] = [
+                                'text' => "Terdapat {$count} pesanan yang pelunasannya sudah dikonfirmasi (Order: {$orderCodes}).",
+                                'url' => route('production.index'),
+                                'icon' => '✅'
+                            ];
+                        }
+                    }
                 }
 
                 if ($isCustomer) {
@@ -91,7 +154,7 @@ class AppServiceProvider extends ServiceProvider
                         $notifications[] = [
                             'text' => "Ada {$waitingSettlement} pesanan Anda yang menunggu pelunasan.",
                             'url' => route('customer.orders.index'),
-                            'icon' => '💵'
+                            'icon' => '💰'
                         ];
                     }
 
@@ -107,16 +170,19 @@ class AppServiceProvider extends ServiceProvider
                         ];
                     }
 
-                    $customerCancelledOrders = \App\Models\Order::where('user_id', auth()->id())
+                    $customerCancelledOrdersList = \App\Models\Order::where('user_id', auth()->id())
                         ->where('order_status', 'rejected')
                         ->where('updated_at', '>=', now()->subDays(3))
-                        ->count();
-                    if ($customerCancelledOrders > 0) {
-                        $notifications[] = [
-                            'text' => "Ada {$customerCancelledOrders} pesanan Anda yang dibatalkan/ditolak.",
-                            'url' => route('customer.orders.index') . '?cancelled_page=1',
-                            'icon' => '❌'
-                        ];
+                        ->get();
+                    if ($customerCancelledOrdersList->isNotEmpty()) {
+                        $orderCodes = $customerCancelledOrdersList->map(fn($o) => $o->order_code)->filter()->unique()->implode(', ');
+                        if ($orderCodes) {
+                            $notifications[] = [
+                                'text' => "Pesanan dengan nomor order {$orderCodes} ditolak/dibatalkan sistem karna melebihi batas waktu",
+                                'url' => route('customer.orders.index') . '?cancelled_page=1',
+                                'icon' => '❌'
+                            ];
+                        }
                     }
                 }
             }

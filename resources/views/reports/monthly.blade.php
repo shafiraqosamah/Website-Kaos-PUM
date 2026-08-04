@@ -112,7 +112,7 @@
         <h4 style="margin:0.9rem 0 0.4rem;">Breakdown Jenis Produksi</h4>
         <table>
             <thead>
-                <tr><th>Jenis</th><th>Order</th><th>Total PCS</th></tr>
+                <tr><th>Jenis</th><th>No.Order</th><th>Total PCS</th></tr>
             </thead>
             <tbody>
                 @forelse($productionByType as $row)
@@ -166,7 +166,7 @@
     <table>
         <thead>
             <tr>
-                <th>Order</th>
+                <th>No.Order</th>
                 <th>Pelanggan</th>
                 <th>Subtotal</th>
                 <th>Verified</th>

@@ -114,6 +114,28 @@
         color: #13283a;
     }
 
+    .main-fields-grid input[type="file"] {
+        padding: 0.35rem 0.5rem;
+    }
+
+    .main-fields-grid input[type="file"]::file-selector-button {
+        background: #e9ecef;
+        border: 1px solid #ced4da;
+        border-radius: 8px;
+        padding: 0.25rem 0.65rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #495057;
+        cursor: pointer;
+        margin-right: 0.5rem;
+        transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+    }
+
+    .main-fields-grid input[type="file"]::file-selector-button:hover {
+        background-color: #dee2e6;
+        border-color: #c4c8cb;
+    }
+
     .main-fields-grid small.muted {
         font-size: 0.76rem;
         color: #6f86a0;

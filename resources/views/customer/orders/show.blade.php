@@ -803,13 +803,13 @@
                 </td>
                 <td>
                     @if ($payment->status === 'verified')
-                        <a href="{{ route('customer.invoices.show', [$order, $payment]) }}" target="_blank">Invoice</a>
+                        <a href="{{ route('customer.invoices.show', [$order, $payment]) }}" target="_blank" class="history-action-btn" style="background:#fff; border-color:#cdd9e5; color:#1a3a52;">Invoice</a>
                     @elseif (in_array($payment->midtrans_status, ['settlement', 'capture'], true))
                         <span class="muted">Menunggu sinkronisasi</span>
                     @elseif ($payment->status === 'rejected')
                         <a class="history-action-btn history-action-btn-reupload" href="{{ route('customer.orders.payments.edit', [$order, $payment]) }}">Bayar Ulang</a>
                     @else
-                        <a href="{{ route('customer.orders.payments.edit', [$order, $payment]) }}">Lanjut Bayar</a>
+                        <a href="{{ route('customer.orders.payments.edit', [$order, $payment]) }}" class="history-action-btn">Lanjut Bayar</a>
                     @endif
                 </td>
                 <td>{{ $displayNotes !== '' ? $displayNotes : '-' }}</td>

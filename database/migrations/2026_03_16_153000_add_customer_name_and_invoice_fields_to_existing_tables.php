@@ -12,22 +12,31 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            $table->string('customer_name')->nullable()->after('order_code');
-        });
+        if (!Schema::hasColumn('orders', 'customer_name')) {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->string('customer_name')->nullable()->after('order_code');
+            });
 
-        DB::table('orders')
-            ->join('users', 'users.id', '=', 'orders.user_id')
-            ->update(['orders.customer_name' => DB::raw('users.name')]);
+            DB::table('orders')
+                ->join('users', 'users.id', '=', 'orders.user_id')
+                ->update(['orders.customer_name' => DB::raw('users.name')]);
 
-        Schema::table('orders', function (Blueprint $table) {
-            $table->string('customer_name')->nullable(false)->change();
-        });
+            Schema::table('orders', function (Blueprint $table) {
+                $table->string('customer_name')->nullable(false)->change();
+            });
+        }
 
-        Schema::table('payments', function (Blueprint $table) {
-            $table->string('invoice_number')->nullable()->after('method');
-            $table->timestamp('invoiced_at')->nullable()->after('invoice_number');
-        });
+        if (!Schema::hasColumn('payments', 'invoice_number')) {
+            Schema::table('payments', function (Blueprint $table) {
+                $table->string('invoice_number')->nullable()->after('method');
+            });
+        }
+
+        if (!Schema::hasColumn('payments', 'invoiced_at')) {
+            Schema::table('payments', function (Blueprint $table) {
+                $table->timestamp('invoiced_at')->nullable()->after('invoice_number');
+            });
+        }
     }
 
     /**

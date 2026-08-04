@@ -15,6 +15,12 @@ class Material extends Model
         'base_price',
         'sort_order',
         'is_active',
+        'title',
+        'description',
+        'image_path',
+        'tags',
+        'suitable_for',
+        'design_application',
     ];
 
     protected function casts(): array
@@ -22,6 +28,9 @@ class Material extends Model
         return [
             'base_price' => 'integer',
             'is_active' => 'boolean',
+            'tags' => 'array',
+            'suitable_for' => 'array',
+            'design_application' => 'array',
         ];
     }
 

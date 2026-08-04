@@ -5,8 +5,8 @@
 @section('content')
 <div class="auth-container">
     <div class="auth-card" style="max-width: 500px; width: 100%; margin: 2rem auto; padding: 2rem; background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-        <h2 style="text-align: center; color: #0d2749; margin-bottom: 1.5rem;">Pantau Status Produksi Anda</h2>
-        <p style="text-align: center; color: #666; margin-bottom: 2rem;">Masukkan nomor pesanan (Contoh: ORD-20260514-ABCDE) untuk melihat status produksi tanpa perlu login.</p>
+        <h2 style="text-align: center; color: #0d2749; margin-bottom: 1.5rem; font-family: 'Playfair Display', serif;">Pantau Status Produksi Anda</h2>
+        <p style="text-align: center; color: #666; margin-bottom: 2rem;">Masukkan nomor pesanan (Contoh: ORD-06-2026-0001) untuk melihat status produksi tanpa perlu login.</p>
 
         @if ($errors->any())
             <div class="alert alert-danger" style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">

@@ -311,11 +311,33 @@
         </div>
     @endif
 
+    @if (($pendingPaymentsCount ?? 0) > 0)
+        @php
+            $pendingOrderCodes = isset($pendingInitialPayments) ? $pendingInitialPayments->map(fn($p) => $p->order->order_code ?? '')->filter()->unique()->implode(', ') : '';
+        @endphp
+        <div class="management-alert" style="border-color: #cbd5e1; background: #f8fafc; color: #475569; margin-top: 0.5rem;">
+            <span>🔔</span>
+            <span>Pesanan dengan nomor order <strong>{{ $pendingOrderCodes }}</strong> belum melakukan pembayaran.</span>
+            <a href="{{ route('finance.index') }}" style="color: #475569; font-weight: 700; text-decoration: underline;">Pantau Sekarang →</a>
+        </div>
+    @endif
+
     @if (($productionWaitingVerification ?? 0) > 0)
         <div class="management-alert" style="border-color: #fbc4a8; background: #fffbf7; color: #c87f2d;">
             <span>✓</span>
             <span>Ada <strong>{{ $productionWaitingVerification }}</strong> produksi yang menunggu verifikasi hasil.</span>
             <a href="{{ route('production.index') }}" style="color: #c87f2d;">Verifikasi Sekarang →</a>
+        </div>
+    @endif
+
+    @if (($waitingSettlementCount ?? 0) > 0)
+        @php
+            $waitingOrderCodes = isset($waitingSettlementOrders) ? $waitingSettlementOrders->map(fn($o) => $o->order_code)->filter()->unique()->implode(', ') : '';
+        @endphp
+        <div class="management-alert" style="border-color: #fce7cf; background: #fffaf4; color: #b45309; margin-top: 0.5rem;">
+            <span>💰</span>
+            <span>Ada <strong>{{ $waitingSettlementCount }}</strong> pesanan dengan nomor order <strong>{{ $waitingOrderCodes }}</strong> membutuhkan pelunasan dari pelanggan.</span>
+            <a href="{{ route('finance.index') }}" style="color: #b45309; font-weight: 700; text-decoration: underline;">Pantau Sekarang →</a>
         </div>
     @endif
 
@@ -381,6 +403,11 @@
                 @endforelse
             </tbody>
         </table>
+        @if($pendingVerificationOrders->hasPages())
+            <div style="margin-top: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: flex-end;">
+                {{ $pendingVerificationOrders->links() }}
+            </div>
+        @endif
     </div>
 
 
@@ -437,6 +464,11 @@
                 @endforelse
             </tbody>
         </table>
+        @if($activeProductionOrders->hasPages())
+            <div style="margin-top: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: flex-end;">
+                {{ $activeProductionOrders->links() }}
+            </div>
+        @endif
     </div>
 
     <div class="dashboard-section">
@@ -494,6 +526,11 @@
                 @endforelse
             </tbody>
         </table>
+        @if($completedOrders->hasPages())
+            <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
+                {{ $completedOrders->links() }}
+            </div>
+        @endif
     </div>
 </section>
 @endsection

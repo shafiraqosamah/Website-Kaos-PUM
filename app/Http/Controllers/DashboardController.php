@@ -109,9 +109,15 @@ class DashboardController extends Controller
         }
 
         if ($user->hasRole(User::ROLE_FINANCE)) {
-            $pendingPayments = Payment::where('status', 'pending')
-                ->whereNotNull('midtrans_order_id')
-                ->count();
+            $pendingInitialPayments = Payment::with('order')
+                ->whereIn('method', ['dp', 'full'])
+                ->where('status', 'pending')
+                ->whereHas('order', function ($query) {
+                    $query->where('order_status', '!=', 'rejected');
+                })
+                ->get();
+            $pendingPaymentsCount = $pendingInitialPayments->count();
+
             $verifiedToday = Payment::where('status', 'verified')->whereDate('updated_at', now()->toDateString())->count();
             $monthlyVerifiedAmount = Payment::where('status', 'verified')
                 ->whereYear('updated_at', now()->year)
@@ -124,7 +130,28 @@ class DashboardController extends Controller
                 ->whereMonth('created_at', now()->month)
                 ->sum('subtotal');
 
-            return view('dashboard.finance', compact('pendingPayments', 'verifiedToday', 'monthlyVerifiedAmount', 'outstandingSettlement', 'monthlyTotalTagihan'));
+            $recentPayments = Payment::with('order.user')
+                ->whereNotNull('midtrans_order_id')
+                ->latest()
+                ->paginate(4, ['*'], 'payments_page')
+                ->withQueryString();
+
+            $waitingSettlementOrders = Order::where('order_status', 'finishing_waiting_settlement')
+                ->where('remaining_amount', '>', 0)
+                ->get();
+            $waitingSettlementCount = $waitingSettlementOrders->count();
+
+            return view('dashboard.finance', compact(
+                'pendingInitialPayments',
+                'pendingPaymentsCount',
+                'verifiedToday',
+                'monthlyVerifiedAmount',
+                'outstandingSettlement',
+                'monthlyTotalTagihan',
+                'recentPayments',
+                'waitingSettlementCount',
+                'waitingSettlementOrders'
+            ));
         }
 
         if ($user->hasRole(User::ROLE_PRODUCTION)) {
@@ -161,6 +188,11 @@ class DashboardController extends Controller
             ->where('order_status', '!=', 'rejected')
             ->count();
         $productionWaitingVerification = Order::where('order_status', 'production_done_waiting_admin')->count();
+        
+        $waitingSettlementOrders = Order::where('order_status', 'finishing_waiting_settlement')
+            ->where('remaining_amount', '>', 0)
+            ->get();
+        $waitingSettlementCount = $waitingSettlementOrders->count();
 
         $summary = [
             'total_orders' => Order::count(),
@@ -173,27 +205,39 @@ class DashboardController extends Controller
             ->where('admin_verification_status', 'pending')
             ->where('order_status', '!=', 'rejected')
             ->latest()
-            ->take(10)
-            ->get();
+            ->paginate(3, ['*'], 'pending_verif_page')
+            ->withQueryString();
 
         $pendingPayments = Payment::with(['order', 'order.user'])
             ->where('status', 'pending')
             ->whereNotNull('midtrans_order_id')
+            ->whereHas('order', function ($query) {
+                $query->where('order_status', '!=', 'rejected');
+            })
             ->latest()
-            ->take(10)
+            ->paginate(3, ['*'], 'pending_pay_page')
+            ->withQueryString();
+
+        $pendingInitialPayments = Payment::with('order')
+            ->whereIn('method', ['dp', 'full'])
+            ->where('status', 'pending')
+            ->whereHas('order', function ($query) {
+                $query->where('order_status', '!=', 'rejected');
+            })
             ->get();
+        $pendingPaymentsCount = $pendingInitialPayments->count();
 
         $activeProductionOrders = Order::with(['user', 'productionSteps', 'workOrder'])
             ->whereIn('order_status', ['verified_payment', 'in_production', 'finishing_waiting_settlement', 'production_done_waiting_admin', 'ready_for_pickup'])
             ->latest()
-            ->take(10)
-            ->get();
+            ->paginate(3, ['*'], 'active_prod_page')
+            ->withQueryString();
 
         $completedOrders = Order::with(['user', 'payments'])
             ->where('order_status', 'completed')
             ->latest()
-            ->take(20)
-            ->get();
+            ->paginate(3, ['*'], 'completed_page')
+            ->withQueryString();
 
         return view('dashboard.management', compact(
             'summary', 
@@ -201,8 +245,12 @@ class DashboardController extends Controller
             'productionWaitingVerification',
             'pendingVerificationOrders',
             'pendingPayments',
+            'pendingInitialPayments',
+            'pendingPaymentsCount',
             'activeProductionOrders',
-            'completedOrders'
+            'completedOrders',
+            'waitingSettlementCount',
+            'waitingSettlementOrders'
         ));
     }
 }
