@@ -14,17 +14,13 @@ use Illuminate\View\View;
 class ReportController extends Controller
 {
     private const MATERIALS = [
-        'Drill',
-        'Taipan',
-        'Tropical',
-        'Oxford',
-        'Twill',
-        'Ribstop',
-        'Lacoste Pique',
         'Cotton Combed 30s',
+        'Cotton Combed 24s',
         'Cotton Combed 20s',
+        'Cotton Bamboo',
+        'Lacoste Cotton Pique',
+        'Lacoste CVC',
         'Drifit',
-        'Lainnya',
     ];
 
     private const TYPES = ['Sablon Manual', 'DTF (Direct to Film)', 'Bordiran', 'Printing'];

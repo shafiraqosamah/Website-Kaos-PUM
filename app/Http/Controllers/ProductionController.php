@@ -157,7 +157,7 @@ class ProductionController extends Controller
                     $newlyFinished = false;
                     
                     if ($steamStep->status === 'done' && is_null($order->payment_deadline_at)) {
-                        $updates['payment_deadline_at'] = now()->addHours(48);
+                        $updates['payment_deadline_at'] = now()->addDays(5);
                         $newlyFinished = true;
                     }
 

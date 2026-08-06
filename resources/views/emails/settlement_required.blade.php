@@ -15,10 +15,10 @@
 
     <p>Tahapan Finishing (pengemasan dan penyelesaian akhir) <strong>tidak dapat dilanjutkan</strong> sebelum pelunasan Anda terverifikasi oleh tim Finance kami.</p>
 
-    <p><em>Penting: Apabila Anda tidak melakukan pelunasan melewati batas waktu 2x24 jam (sejak tahap steam selesai), pesanan Anda akan otomatis ditahan oleh sistem.</em></p>
+    <p><em>Penting: Apabila Anda tidak melakukan pelunasan melewati batas waktu 5x24 jam (sejak tahap steam selesai), pesanan Anda akan otomatis ditahan oleh sistem.</em></p>
 
     <div style="margin-top: 30px; text-align: center;">
-        <a href="{{ route('customer.orders.index') }}" style="background-color: #0d2749; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Lakukan Pelunasan Sekarang</a>
+        <a href="{{ route('dashboard') }}" style="background-color: #0d2749; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Lakukan Pelunasan Sekarang</a>
     </div>
 
     <hr style="margin-top: 30px; border: 0; border-top: 1px solid #eee;">

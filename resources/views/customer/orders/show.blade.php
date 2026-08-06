@@ -25,7 +25,7 @@
             'production_done_waiting_admin' => 'Selesai Produksi',
             'verified_payment', 'verified_dp' => 'Menunggu Produksi',
             'in_production', 'in_progress' => 'Sedang Proses',
-            'finishing_waiting_settlement' => 'Menunggu Pelunasan (Max 2x24 Jam)',
+            'finishing_waiting_settlement' => 'Menunggu Pelunasan (Max 5x24 Jam)',
             'held_waiting_settlement' => 'Status Ditahan',
             'cancelled' => 'Dibatalkan',
             'ready_for_pickup' => 'Pesanan Siap Ambil',

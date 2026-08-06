@@ -356,7 +356,13 @@
                         <div>
                             <label>Bahan</label>
                             <select name="fabric" required>
-                                @foreach ($materials as $material)
+                                @php
+                                    $allMaterials = $materials;
+                                    if ($order->fabric && !in_array($order->fabric, $allMaterials)) {
+                                        $allMaterials[] = $order->fabric;
+                                    }
+                                @endphp
+                                @foreach ($allMaterials as $material)
                                     <option value="{{ $material }}" {{ old('fabric', $order->fabric) === $material ? 'selected' : '' }}>{{ $material }}</option>
                                 @endforeach
                             </select>

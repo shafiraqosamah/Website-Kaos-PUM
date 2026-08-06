@@ -54,7 +54,7 @@ class OrderStatusPresenter
             'verified_payment', 'verified_dp' => 'Menunggu Produksi',
             'production_done_waiting_admin' => 'Selesai Produksi',
             'in_production' => 'Sedang Proses',
-            'finishing_waiting_settlement' => 'Menunggu Pelunasan (Max 2x24 Jam)',
+            'finishing_waiting_settlement' => 'Menunggu Pelunasan (Max 5x24 Jam)',
             'ready_for_pickup' => 'Pesanan Siap Ambil',
             'completed', 'done' => 'Selesai',
             'rejected' => 'Ditolak',

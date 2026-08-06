@@ -54,7 +54,7 @@
                                 'submitted' => 'Menunggu Verifikasi Admin (Max 2x24 Jam)',
                                 'verified_payment' => 'Pembayaran Diverifikasi',
                                 'in_production' => 'Sedang Diproduksi',
-                                'finishing_waiting_settlement' => 'Finishing (Menunggu Pelunasan Max 2x24 Jam)',
+                                'finishing_waiting_settlement' => 'Finishing (Menunggu Pelunasan Max 5x24 Jam)',
                                 'ready_for_pickup' => 'Siap Diambil',
                                 'completed' => 'Selesai',
                                 'cancelled' => 'Dibatalkan',
