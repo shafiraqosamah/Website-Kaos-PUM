@@ -11,36 +11,35 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @endif
     <style>
-        .floating-whatsapp {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background-color: #25d366;
-            color: #fff;
-            padding: 8px 16px;
-            border-radius: 50px;
-            font-size: 14px;
-            font-weight: 500;
+        .sidebar-whatsapp-btn {
+            width: 100%;
+            border: 1px solid #25d366;
+            border-radius: 10px;
+            background: #25d366;
+            color: #ffffff !important;
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 0.58rem 0.7rem;
+            cursor: pointer;
+            text-decoration: none;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
-            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
-            text-decoration: none;
-            z-index: 9999;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
         }
 
-        .floating-whatsapp:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 16px rgba(37, 211, 102, 0.5);
-            color: #fff;
+        .sidebar-whatsapp-btn:hover {
+            background: #20ba59;
+            border-color: #20ba59;
+            color: #ffffff !important;
             text-decoration: none;
         }
 
-        .floating-whatsapp svg {
-            width: 18px;
+        .sidebar-whatsapp-btn svg {
+            width: 14px;
             height: auto;
-            flex-shrink: 0;
             fill: currentColor;
         }
 
@@ -1018,7 +1017,7 @@
             <!-- Header Kiri (Logo) -->
             <div class="topbar-left" style="width: var(--app-sidebar-width); border-right: 1px solid rgba(255,255,255,0.08); height: 100%; display: flex; align-items: center; padding-left: 1.5rem; flex-shrink: 0;">
                 <a class="brand" href="{{ route('home') }}" style="margin: 0; padding: 0;">
-                    <span class="brand-accent">PT Panji</span>Usaha Mulia
+                    <span class="brand-accent">PT PANJI</span>Usaha Mulia
                 </a>
             </div>
 
@@ -1233,6 +1232,12 @@
                 </nav>
 
                 <div class="sidebar-footer">
+                    <a href="https://wa.me/6282129287094" target="_blank" rel="noopener noreferrer" class="sidebar-whatsapp-btn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.504-5.714-1.464L0 24zm6.59-4.846c1.6.95 3.197 1.451 4.785 1.453 5.486 0 9.94-4.453 9.944-9.943.002-2.66-1.023-5.162-2.887-7.028-1.866-1.866-4.35-2.891-7.014-2.892-5.485 0-9.94 4.454-9.944 9.945-.001 1.684.449 3.327 1.307 4.795l-.997 3.64 3.73-.978zm11.235-6.721c-.3-.149-1.772-.874-2.047-.974-.275-.1-.475-.149-.675.15-.2.299-.775.974-.95 1.174-.175.2-.35.224-.65.075-.3-.15-1.265-.467-2.41-1.485-.89-.793-1.49-1.771-1.665-2.07-.175-.3-.019-.462.13-.611.135-.134.3-.349.45-.523.15-.174.2-.299.3-.499.1-.2.05-.375-.025-.524-.075-.15-.675-1.625-.925-2.224-.244-.589-.493-.51-.675-.519-.174-.009-.374-.01-.574-.01-.2 0-.525.075-.8.374-.275.299-1.05 1.024-1.05 2.499 0 1.475 1.075 2.899 1.225 3.099.15.199 2.116 3.23 5.125 4.532.715.31 1.273.495 1.707.633.718.228 1.37.195 1.887.118.575-.085 1.772-.724 2.022-1.424.25-.699.25-1.299.175-1.424-.075-.125-.275-.199-.575-.349z"/>
+                        </svg>
+                        <span>Hubungi WhatsApp</span>
+                    </a>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="customer-logout-btn">Keluar</button>
@@ -1275,7 +1280,7 @@
         </div>
     @else
         <div class="topbar">
-            <a class="brand" href="{{ route('home') }}"><span class="brand-accent">PT Panji</span>Usaha Mulia</a>
+            <a class="brand" href="{{ route('home') }}"><span class="brand-accent">PT PANJI</span>Usaha Mulia</a>
             @if (request()->routeIs('home'))
                 <div class="topbar-links" aria-label="Navigasi Landing">
                     <a href="#home">Home</a>
@@ -1359,12 +1364,7 @@
 </script>
 @endauth
 
-<a href="https://wa.me/628123456789" target="_blank" rel="noopener noreferrer" class="floating-whatsapp" aria-label="Chat WhatsApp">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-        <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
-    </svg>
-    <span style="line-height:1; margin-top:1px;">WhatsApp</span>
-</a>
+
 
 </body>
 </html>

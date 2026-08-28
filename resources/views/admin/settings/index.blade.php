@@ -152,8 +152,7 @@
             <label class="form-label" for="auto_cancel_minutes">Batas Waktu Tunggu Verifikasi / Pembayaran (dalam Menit)</label>
             <input type="number" id="auto_cancel_minutes" name="auto_cancel_minutes" class="form-control" value="{{ $autoCancelMinutes }}" min="1" required>
             <p style="margin-top: 0.5rem; color: #64748b; font-size: 0.85rem;">
-                Default normal: 2880 menit (48 Jam / 2 Hari).<br>
-                Ubah ke angka kecil (misal 1 atau 2 menit) untuk keperluan testing saat demonstrasi sidang.
+                Default normal: 2880 menit (48 Jam / 2 Hari).
             </p>
         </div>
         

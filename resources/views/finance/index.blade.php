@@ -76,6 +76,10 @@
         font-weight: 600;
     }
 
+    html {
+        scroll-behavior: smooth;
+    }
+
     .stats-row {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -90,12 +94,13 @@
         border-top: 4px solid #c6d3df;
         padding: 1rem 1.05rem;
         box-shadow: 0 1px 3px rgba(15, 43, 61, 0.03);
-        transition: all 0.2s;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
     }
 
     .stat-item:hover {
-        border-color: #c8d6e8;
-        box-shadow: 0 3px 8px rgba(15, 43, 61, 0.06);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(13, 39, 73, 0.1);
     }
 
     .stat-item.dp {
@@ -538,46 +543,57 @@
     </div>
 
     <div class="stats-row">
-        <div class="stat-item dp">
-            <div class="label">Pending DP</div>
-            <div class="value">{{ $pendingDpCount }}</div>
-        </div>
-        <div class="stat-item settlement">
-            <div class="label">Pending Pelunasan</div>
-            <div class="value">{{ $pendingSettlementCount }}</div>
-        </div>
-        <div class="stat-item full">
-            <div class="label">Pending Lunas Awal</div>
-            <div class="value">{{ $pendingFullCount }}</div>
-        </div>
-        <div class="stat-item full">
-            <div class="label">Uang Masuk ({{ $monthLabel }})</div>
-            <div class="value">Rp {{ number_format((float) $monthlyVerifiedAmount, 0, ',', '.') }}</div>
-            <div style="margin-top: 0.42rem; color: #7f96ae; font-size: 0.78rem; font-weight: 600;">{{ number_format((int) $verifiedToday, 0, ',', '.') }} diverifikasi hari ini</div>
-        </div>
-        <div class="stat-item dp">
-            <div class="label">Total Tagihan</div>
-            <div class="value">Rp {{ number_format((float) $monthlyTotalTagihan, 0, ',', '.') }}</div>
-            <div style="margin-top: 0.42rem; color: #7f96ae; font-size: 0.78rem; font-weight: 600;">{{ $monthLabel }}</div>
-        </div>
+        <a href="#tabel-pembayaran" style="text-decoration: none; color: inherit;">
+            <div class="stat-item dp">
+                <div class="label">Pending DP</div>
+                <div class="value">{{ $pendingDpCount }}</div>
+            </div>
+        </a>
+        <a href="#tabel-pembayaran" style="text-decoration: none; color: inherit;">
+            <div class="stat-item settlement">
+                <div class="label">Pending Pelunasan</div>
+                <div class="value">{{ $pendingSettlementCount }}</div>
+            </div>
+        </a>
+        <a href="#tabel-pembayaran" style="text-decoration: none; color: inherit;">
+            <div class="stat-item full">
+                <div class="label">Pending Lunas Awal</div>
+                <div class="value">{{ $pendingFullCount }}</div>
+            </div>
+        </a>
+        <a href="#tabel-pembayaran" style="text-decoration: none; color: inherit;">
+            <div class="stat-item full">
+                <div class="label">Uang Masuk ({{ $monthLabel }})</div>
+                <div class="value">Rp {{ number_format((float) $monthlyVerifiedAmount, 0, ',', '.') }}</div>
+                <div style="margin-top: 0.42rem; color: #7f96ae; font-size: 0.78rem; font-weight: 600;">{{ number_format((int) $verifiedToday, 0, ',', '.') }} diverifikasi hari ini</div>
+            </div>
+        </a>
+        <a href="#tabel-pembayaran" style="text-decoration: none; color: inherit;">
+            <div class="stat-item dp">
+                <div class="label">Total Tagihan</div>
+                <div class="value">Rp {{ number_format((float) $monthlyTotalTagihan, 0, ',', '.') }}</div>
+                <div style="margin-top: 0.42rem; color: #7f96ae; font-size: 0.78rem; font-weight: 600;">{{ $monthLabel }}</div>
+            </div>
+        </a>
     </div>
 
 
 
-@if($verifiedPayments->isEmpty() && $ordersWaitingSettlement->isEmpty() && $pendingPayments->isEmpty())
-    <div class="section-card">
-        <h3>Data Pembayaran Pelanggan</h3>
-        <p>Pembayaran yang telah berhasil diverifikasi dan invoice telah diterbitkan, atau pesanan yang belum melakukan pembayaran.</p>
-        <div class="empty-state">
-            <h4>Belum Ada</h4>
-            <p>Data pembayaran atau tagihan pesanan belum lunas akan muncul di sini.</p>
-        </div>
-    </div>
-@else
-    <div class="section-card">
-        <h3>Data Pembayaran Pelanggan</h3>
-        <p>Pembayaran yang telah berhasil diverifikasi dan invoice telah diterbitkan, serta pesanan yang belum melunasi atau belum melakukan pembayaran.</p>
-        <div style="overflow-x: auto;">
+    <div id="tabel-pembayaran" style="scroll-margin-top: 20px;">
+        @if($verifiedPayments->isEmpty() && $ordersWaitingSettlement->isEmpty() && $pendingPayments->isEmpty())
+            <div class="section-card">
+                <h3>Data Pembayaran Pelanggan</h3>
+                <p>Pembayaran yang telah berhasil diverifikasi dan invoice telah diterbitkan, atau pesanan yang belum melakukan pembayaran.</p>
+                <div class="empty-state">
+                    <h4>Belum Ada</h4>
+                    <p>Data pembayaran atau tagihan pesanan belum lunas akan muncul di sini.</p>
+                </div>
+            </div>
+        @else
+            <div class="section-card">
+                <h3>Data Pembayaran Pelanggan</h3>
+                <p>Pembayaran yang telah berhasil diverifikasi dan invoice telah diterbitkan, serta pesanan yang belum melunasi atau belum melakukan pembayaran.</p>
+                <div style="overflow-x: auto;">
             <table class="finance-table">
                 <thead>
                     <tr>
@@ -749,6 +765,7 @@
         @endif
     </div>
 @endif
+</div>
 
 @if($rejectedPayments->isNotEmpty())
     <div class="section-card">

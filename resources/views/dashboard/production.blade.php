@@ -98,12 +98,13 @@
         padding: 1rem 1.05rem;
         border-top: 4px solid #c6d3df;
         box-shadow: 0 1px 3px rgba(15, 43, 61, 0.03);
-        transition: all 0.2s;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
     }
 
     .kpi-card-modern:hover {
-        border-color: #c8d6e8;
-        box-shadow: 0 3px 8px rgba(15, 43, 61, 0.06);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(13, 39, 73, 0.1);
     }
 
     .kpi-card-modern.active {
@@ -514,23 +515,29 @@
 @endif
 
     <div class="kpi-grid-modern">
-        <article class="kpi-card-modern active">
-            <p class="kpi-title">Sedang Proses</p>
-            <div class="kpi-value">{{ $processingCount }}</div>
-            <div class="kpi-note">Order aktif dalam produksi</div>
-        </article>
+        <a href="{{ route('production.index') }}" style="text-decoration: none; color: inherit;">
+            <article class="kpi-card-modern active">
+                <p class="kpi-title">Sedang Proses</p>
+                <div class="kpi-value">{{ $processingCount }}</div>
+                <div class="kpi-note">Order aktif dalam produksi</div>
+            </article>
+        </a>
 
-        <article class="kpi-card-modern completed">
-            <p class="kpi-title">Selesai Produksi</p>
-            <div class="kpi-value">{{ $completedProductionCount }}</div>
-            <div class="kpi-note">Tahap produksi sudah selesai</div>
-        </article>
+        <a href="{{ route('production.index') }}" style="text-decoration: none; color: inherit;">
+            <article class="kpi-card-modern completed">
+                <p class="kpi-title">Selesai Produksi</p>
+                <div class="kpi-value">{{ $completedProductionCount }}</div>
+                <div class="kpi-note">Tahap produksi sudah selesai</div>
+            </article>
+        </a>
 
-        <article class="kpi-card-modern blocked">
-            <p class="kpi-title">Menunggu Pelunasan</p>
-            <div class="kpi-value">{{ $waitingSettlement }}</div>
-            <div class="kpi-note">Blocked finishing</div>
-        </article>
+        <a href="{{ route('production.index') }}" style="text-decoration: none; color: inherit;">
+            <article class="kpi-card-modern blocked">
+                <p class="kpi-title">Menunggu Pelunasan</p>
+                <div class="kpi-value">{{ $waitingSettlement }}</div>
+                <div class="kpi-note">Blocked finishing</div>
+            </article>
+        </a>
     </div>
 
 <!-- SPK Production Dashboard -->

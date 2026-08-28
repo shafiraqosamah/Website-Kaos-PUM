@@ -62,6 +62,13 @@
         padding: 1rem 1.05rem;
         border-top: 4px solid #c6d3df;
         box-shadow: 0 1px 3px rgba(15, 43, 61, 0.03);
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+    }
+
+    .summary-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(13, 39, 73, 0.1);
     }
 
     .summary-card.orders {
@@ -539,31 +546,41 @@
     @endif
 
     <div class="summary-grid">
-        <article class="summary-card orders">
-            <div class="label">Total Pesanan</div>
-            <div class="value">{{ $totalOrders }}</div>
-            <div class="note">Semua pesanan</div>
-        </article>
-        <article class="summary-card active">
-            <div class="label">Dalam Produksi</div>
-            <div class="value">{{ $inProgressOrders }}</div>
-            <div class="note">Sedang diproses tim produksi</div>
-        </article>
-        <article class="summary-card pending-verif">
-            <div class="label">Menunggu Verifikasi</div>
-            <div class="value">{{ $pendingVerificationOrdersCount }}</div>
-            <div class="note">Proses review admin</div>
-        </article>
-        <article class="summary-card pending-pay">
-            <div class="label">Menunggu Pembayaran</div>
-            <div class="value">{{ $pendingPaymentOrdersCount }}</div>
-            <div class="note">Max 2x24 Jam</div>
-        </article>
-        <article class="summary-card completed">
-            <div class="label">Pesanan Selesai</div>
-            <div class="value">{{ $completedOrders ?? 0 }}</div>
-            <div class="note">Pesanan Sudah Selesai</div>
-        </article>
+        <a href="{{ route('customer.orders.index') }}" style="text-decoration: none; color: inherit;">
+            <article class="summary-card orders">
+                <div class="label">Total Pesanan</div>
+                <div class="value">{{ $totalOrders }}</div>
+                <div class="note">Semua pesanan</div>
+            </article>
+        </a>
+        <a href="{{ route('customer.orders.index') }}" style="text-decoration: none; color: inherit;">
+            <article class="summary-card active">
+                <div class="label">Dalam Produksi</div>
+                <div class="value">{{ $inProgressOrders }}</div>
+                <div class="note">Sedang diproses tim produksi</div>
+            </article>
+        </a>
+        <a href="{{ route('customer.orders.index') }}" style="text-decoration: none; color: inherit;">
+            <article class="summary-card pending-verif">
+                <div class="label">Menunggu Verifikasi</div>
+                <div class="value">{{ $pendingVerificationOrdersCount }}</div>
+                <div class="note">Proses review admin</div>
+            </article>
+        </a>
+        <a href="{{ route('customer.orders.index') }}" style="text-decoration: none; color: inherit;">
+            <article class="summary-card pending-pay">
+                <div class="label">Menunggu Pembayaran</div>
+                <div class="value">{{ $pendingPaymentOrdersCount }}</div>
+                <div class="note">Max 2x24 Jam</div>
+            </article>
+        </a>
+        <a href="{{ route('customer.orders.index') }}" style="text-decoration: none; color: inherit;">
+            <article class="summary-card completed">
+                <div class="label">Pesanan Selesai</div>
+                <div class="value">{{ $completedOrders ?? 0 }}</div>
+                <div class="note">Pesanan Sudah Selesai</div>
+            </article>
+        </a>
     </div>
 
     <section class="recent-orders">

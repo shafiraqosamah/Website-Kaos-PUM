@@ -84,6 +84,13 @@
         padding: 1rem 1.05rem;
         border-top: 4px solid #c6d3df;
         box-shadow: 0 6px 16px rgba(13, 39, 73, 0.05);
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(13, 39, 73, 0.1);
     }
 
     .metric-card.orders {
@@ -342,26 +349,34 @@
     @endif
 
     <div class="metrics-grid">
-        <div class="metric-card orders">
-            <div class="metric-label">Total Order</div>
-            <div class="metric-value">{{ $summary['total_orders'] }}</div>
-            <div class="metric-indicator">Seluruh pesanan</div>
-        </div>
-        <div class="metric-card pending">
-            <div class="metric-label">Menunggu Verifikasi (Max 2x24 Jam)</div>
-            <div class="metric-value">{{ $summary['pending_verification'] }}</div>
-            <div class="metric-indicator">Verifikasi pesanan pelanggan</div>
-        </div>
-        <div class="metric-card production">
-            <div class="metric-label">Sedang Produksi</div>
-            <div class="metric-value">{{ $summary['in_production'] }}</div>
-            <div class="metric-indicator">Dalam Pengerjaan</div>
-        </div>
-        <div class="metric-card completed">
-            <div class="metric-label">Selesai</div>
-            <div class="metric-value">{{ $summary['completed'] }}</div>
-            <div class="metric-indicator">Order selesai</div>
-        </div>
+        <a href="{{ route('reports.orders') }}" style="text-decoration: none; color: inherit;">
+            <div class="metric-card orders">
+                <div class="metric-label">Total Order</div>
+                <div class="metric-value">{{ $summary['total_orders'] }}</div>
+                <div class="metric-indicator">Seluruh pesanan</div>
+            </div>
+        </a>
+        <a href="{{ route('reports.orders') }}" style="text-decoration: none; color: inherit;">
+            <div class="metric-card pending">
+                <div class="metric-label">Menunggu Verifikasi (Max 2x24 Jam)</div>
+                <div class="metric-value">{{ $summary['pending_verification'] }}</div>
+                <div class="metric-indicator">Verifikasi pesanan pelanggan</div>
+            </div>
+        </a>
+        <a href="{{ route('production.index') }}" style="text-decoration: none; color: inherit;">
+            <div class="metric-card production">
+                <div class="metric-label">Sedang Produksi</div>
+                <div class="metric-value">{{ $summary['in_production'] }}</div>
+                <div class="metric-indicator">Dalam Pengerjaan</div>
+            </div>
+        </a>
+        <a href="{{ route('reports.orders') }}" style="text-decoration: none; color: inherit;">
+            <div class="metric-card completed">
+                <div class="metric-label">Selesai</div>
+                <div class="metric-value">{{ $summary['completed'] }}</div>
+                <div class="metric-indicator">Order selesai</div>
+            </div>
+        </a>
     </div>
 
     <div class="dashboard-section">

@@ -984,7 +984,7 @@
             return;
         }
 
-        submitHint.textContent = 'Semua data sudah lengkap. Submit untuk menunggu pesanan diverifikasi max 2x24 jam.';
+        submitHint.textContent = 'Submit untuk menunggu pesanan diverifikasi Admin max 3x24 jam. Data tidak dapat dilakukan perubahan setelah proses verifikasi';
         submitHint.style.color = '#1c6a47';
     };
 

@@ -78,6 +78,10 @@
         margin: 0 auto 1rem;
     }
 
+    html {
+        scroll-behavior: smooth;
+    }
+
     .prod-kpi .item {
         background: #ffffff;
         border: 1px solid #d9e2ec;
@@ -85,7 +89,13 @@
         border-radius: 12px;
         padding: 1rem 1.05rem;
         box-shadow: 0 1px 3px rgba(15, 43, 61, 0.03);
-        transition: all 0.2s;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+    }
+
+    .prod-kpi .item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(13, 39, 73, 0.1);
     }
 
     .prod-kpi .item.order {
@@ -212,25 +222,33 @@
         </div>
 
         <div class="prod-kpi">
-            <div class="item order">
-                <div class="label">Total Order Produksi</div>
-                <div class="value">{{ $totalOrder }}</div>
-            </div>
-            <div class="item active">
-                <div class="label">Sedang Diproduksi</div>
-                <div class="value">{{ $inProgress }}</div>
-            </div>
-            <div class="item blocked">
-                <div class="label">Menunggu Pelunasan</div>
-                <div class="value">{{ $needSettlement }}</div>
-            </div>
-            <div class="item completed">
-                <div class="label">Selesai Produksi</div>
-                <div class="value">{{ $historyCount }}</div>
-            </div>
+            <a href="#order-aktif" style="text-decoration: none; color: inherit;">
+                <div class="item order">
+                    <div class="label">Total Order Produksi</div>
+                    <div class="value">{{ $totalOrder }}</div>
+                </div>
+            </a>
+            <a href="#order-aktif" style="text-decoration: none; color: inherit;">
+                <div class="item active">
+                    <div class="label">Sedang Diproduksi</div>
+                    <div class="value">{{ $inProgress }}</div>
+                </div>
+            </a>
+            <a href="#order-aktif" style="text-decoration: none; color: inherit;">
+                <div class="item blocked">
+                    <div class="label">Menunggu Pelunasan</div>
+                    <div class="value">{{ $needSettlement }}</div>
+                </div>
+            </a>
+            <a href="#riwayat-selesai" style="text-decoration: none; color: inherit;">
+                <div class="item completed">
+                    <div class="label">Selesai Produksi</div>
+                    <div class="value">{{ $historyCount }}</div>
+                </div>
+            </a>
         </div>
 
-        <div class="prod-table-card">
+        <div id="order-aktif" class="prod-table-card" style="scroll-margin-top: 20px;">
             <h3>Order Aktif Produksi</h3>
             <table>
                 <thead>
@@ -302,7 +320,7 @@
             </div>
         @endif
 
-        <div class="prod-table-card" style="overflow:auto;">
+        <div id="riwayat-selesai" class="prod-table-card" style="overflow:auto; scroll-margin-top: 20px;">
             <div class="history-head">
                 <h3>Riwayat Produksi Selesai</h3>
                 <span class="muted">Rekap order yang sudah selesai diproduksi</span>
